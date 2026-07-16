@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RutaFleet · Documentación API</title>
+  <style>
+    :root {
+      --bg: #ffffff; --side: #f4f6fa; --border: #e3e8f0; --text: #1d2733;
+      --muted: #66788f; --primary: #1f5eff; --code-bg: #101a2b; --code-text: #d5e0f2;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { display: flex; color: var(--text); background: var(--bg); font-size: 14.5px; line-height: 1.65; }
+    aside { width: 250px; background: var(--side); border-right: 1px solid var(--border); padding: 22px 16px; position: fixed; inset: 0 auto 0 0; overflow-y: auto; }
+    aside h1 { font-size: 17px; margin-bottom: 4px; }
+    aside .sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
+    aside a { display: block; padding: 6px 10px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 13px; }
+    aside a:hover { background: #e7efff; color: var(--primary); }
+    main { margin-left: 250px; padding: 34px 44px; max-width: 900px; }
+    h2 { font-size: 21px; margin: 34px 0 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    h2:first-of-type { border-top: none; margin-top: 0; }
+    h3 { font-size: 15px; margin: 20px 0 6px; }
+    p { margin-bottom: 10px; }
+    code { background: #eef1f6; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
+    pre { background: var(--code-bg); color: var(--code-text); padding: 14px 16px; border-radius: 10px; overflow-x: auto; font-size: 12.8px; margin: 10px 0 16px; }
+    pre code { background: none; padding: 0; color: inherit; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0 16px; font-size: 13px; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+    th { background: var(--side); }
+    .method { display: inline-block; font-weight: 700; font-size: 11.5px; padding: 2px 8px; border-radius: 5px; margin-right: 6px; }
+    .get { background: #e2f7ef; color: #067a5b; } .post { background: #e7efff; color: #1747c4; }
+    .put { background: #fff4e0; color: #b06f00; } .del { background: #fdebec; color: #e5484d; }
+    .endpoint { font-family: ui-monospace, monospace; font-size: 13.5px; margin: 14px 0 6px; }
+    .muted { color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>🚚 RutaFleet API</h1>
+    <div class="sub">REST API · v1</div>
+    <a href="#intro">Introducción</a>
+    <a href="#auth">Autenticación</a>
+    <a href="#orders">Pedidos</a>
+    <a href="#vehicles">Vehículos</a>
+    <a href="#drivers">Conductores</a>
+    <a href="#optimize">Optimización</a>
+    <a href="#routes">Rutas</a>
+    <a href="#tracking">Monitoreo GPS</a>
+    <a href="#pod">Prueba de entrega</a>
+    <a href="#webhooks">Webhooks</a>
+    <a href="#kpis">KPIs</a>
+    <a href="/">← Volver a la aplicación</a>
+  </aside>
+  <main>
+    <h2 id="intro">Introducción</h2>
+    <p>La API de <strong>RutaFleet TMS</strong> permite integrar tu ERP o e-commerce con la operación logística de última milla: crear pedidos, optimizar rutas (incluyendo <strong>madre nodriza</strong> y <strong>recolecciones</strong>), despachar vehículos, seguir su posición GPS y recibir la prueba de entrega.</p>
+    <p>Base URL: <code>http://localhost:3000/api/v1</code>. Todas las respuestas usan JSON con la forma <code>{ "data": ... }</code> y los errores <code>{ "error": "mensaje" }</code>.</p>
+
+    <h2 id="auth">Autenticación</h2>
+    <p>Esta réplica de demostración no exige credenciales. En un despliegue real se usaría un encabezado <code>Authorization: Bearer &lt;api_key&gt;</code> por empresa.</p>
+
+    <h2 id="orders">Pedidos</h2>
+    <p>Un pedido representa una <em>entrega</em> o una <em>recolección</em> georreferenciada, con peso, volumen y ventana horaria.</p>
+    <div class="endpoint"><span class="method get">GET</span>/orders?status=pendiente&amp;type=recoleccion</div>
+    <div class="endpoint"><span class="method get">GET</span>/orders/{id}</div>
+    <div class="endpoint"><span class="method post">POST</span>/orders <span class="muted">— acepta un objeto o un arreglo (importación masiva)</span></div>
+    <div class="endpoint"><span class="method put">PUT</span>/orders/{id}</div>
+    <div class="endpoint"><span class="method del">DELETE</span>/orders/{id}</div>
+<pre><code>POST /api/v1/orders
+{
+  "code": "PED-0100",
+  "type": "entrega",            // "entrega" | "recoleccion"
+  "customer": "Comercial Andina SpA",
+  "address": "Av. Apoquindo 4501, Las Condes",
+  "commune": "Las Condes",
+  "lat": -33.4172,
+  "lng": -70.6015,
+  "weightKg": 180,
+  "volumeM3": 1.2,
+  "timeWindow": { "start": "09:00", "end": "13:00" }
+}</code></pre>
+    <table>
+      <tr><th>Estado</th><th>Significado</th></tr>
+      <tr><td><code>pendiente</code></td><td>Creado, sin ruta asignada</td></tr>
+      <tr><td><code>asignado</code></td><td>Incluido en una ruta planificada</td></tr>
+      <tr><td><code>en_ruta</code></td><td>El vehículo está en camino</td></tr>
+      <tr><td><code>entregado</code> / <code>recolectado</code></td><td>Completado con POD</td></tr>
+      <tr><td><code>no_entregado</code></td><td>Falló la entrega (con motivo en el POD)</td></tr>
+    </table>
+
+    <h2 id="vehicles">Vehículos</h2>
+    <div class="endpoint"><span class="method get">GET</span>/vehicles</div>
+    <div class="endpoint"><span class="method post">POST</span>/vehicles</div>
+    <div class="endpoint"><span class="method put">PUT</span>/vehicles/{id}</div>
+    <div class="endpoint"><span class="method del">DELETE</span>/vehicles/{id}</div>
+<pre><code>{
+  "plate": "HTXS-91",
+  "name": "Van Reparto 01",
+  "type": "van",                // moto | van | camion
+  "capacityKg": 1200,
+  "capacityM3": 9,
+  "isNodriza": false,           // true para vehículos madre nodriza
+  "driverId": "DRV-1"
+}</code></pre>
+
+    <h2 id="drivers">Conductores</h2>
+    <div class="endpoint"><span class="method get">GET</span>/drivers</div>
+    <div class="endpoint"><span class="method post">POST</span>/drivers</div>
+    <div class="endpoint"><span class="method put">PUT</span>/drivers/{id}</div>
+    <div class="endpoint"><span class="method del">DELETE</span>/drivers/{id}</div>
+
+    <h2 id="optimize">Optimización de rutas</h2>
+    <p>El motor VRP asigna pedidos pendientes a los vehículos indicados usando barrido angular, vecino más cercano y mejora 2-opt, validando capacidad en kg y m³. Soporta dos modos:</p>
+    <ul style="margin: 0 0 10px 22px">
+      <li><strong>Clásico:</strong> cada vehículo sale del centro de distribución.</li>
+      <li><strong>Madre nodriza:</strong> un vehículo mayor lleva la carga a puntos de transbordo y los vehículos satélite reparten cada zona desde allí. Ideal para zonas alejadas del depósito.</li>
+    </ul>
+    <p>Las <strong>recolecciones</strong> se intercalan en la ruta validando que la carga a bordo nunca supere la capacidad del vehículo; si no hay espacio, la recolección se pospone a un punto posterior de la ruta.</p>
+    <div class="endpoint"><span class="method post">POST</span>/optimize</div>
+<pre><code>POST /api/v1/optimize
+{
+  "orderIds": null,             // null = todos los pendientes
+  "vehicleIds": ["VEH-1", "VEH-2", "VEH-3"],
+  "options": {
+    "startTime": "08:30",
+    "returnToDepot": true,
+    "useNodriza": true
+  }
+}
+
+→ 201
+{
+  "data": {
+    "routes": [ { "id": "RUT-1021", "vehicleId": "VEH-1", "isNodriza": true, ... } ],
+    "unassigned": [],
+    "summary": { "totalRoutes": 4, "totalStops": 18, "totalDistanceKm": 96.4 }
+  }
+}</code></pre>
+
+    <h2 id="routes">Rutas</h2>
+    <div class="endpoint"><span class="method get">GET</span>/routes?status=en_curso</div>
+    <div class="endpoint"><span class="method get">GET</span>/routes/{id}</div>
+    <div class="endpoint"><span class="method post">POST</span>/routes/{id}/start <span class="muted">— despacha la ruta e inicia el seguimiento GPS</span></div>
+    <div class="endpoint"><span class="method del">DELETE</span>/routes/{id} <span class="muted">— los pedidos vuelven a pendiente</span></div>
+
+    <h2 id="tracking">Monitoreo GPS</h2>
+    <p>Devuelve la posición simulada de cada vehículo con ruta en curso, su rumbo, próxima parada y avance.</p>
+    <div class="endpoint"><span class="method get">GET</span>/tracking</div>
+<pre><code>→ 200
+{
+  "data": [{
+    "routeId": "RUT-1021", "vehicleId": "VEH-2", "plate": "HTXS-91",
+    "driverName": "Carolina Fuentes", "lat": -33.4301, "lng": -70.6412,
+    "heading": 145, "nextStop": { "seq": 3, "eta": "10:42" },
+    "completedStops": 2, "totalStops": 6
+  }]
+}</code></pre>
+
+    <h2 id="pod">Prueba de entrega (POD)</h2>
+    <p>Registra la evidencia de entrega o recolección de un pedido. El simulador la genera automáticamente al completar cada parada; también puede registrarse de forma manual.</p>
+    <div class="endpoint"><span class="method post">POST</span>/orders/{id}/pod</div>
+<pre><code>POST /api/v1/orders/ORD-1005/pod
+{
+  "receiver": "María Pérez",
+  "method": "firma_digital",    // firma_digital | foto | codigo
+  "notes": "Recepción conforme en bodega",
+  "failed": false               // true marca el pedido como no_entregado
+}</code></pre>
+
+    <h2 id="webhooks">Webhooks</h2>
+    <p>Suscribe una URL para recibir un <code>POST</code> JSON cuando ocurra un evento. El encabezado <code>X-RutaFleet-Event</code> indica el tipo.</p>
+    <div class="endpoint"><span class="method get">GET</span>/webhooks</div>
+    <div class="endpoint"><span class="method post">POST</span>/webhooks</div>
+    <div class="endpoint"><span class="method del">DELETE</span>/webhooks/{id}</div>
+    <table>
+      <tr><th>Evento</th><th>Se emite cuando…</th></tr>
+      <tr><td><code>order.created</code></td><td>Se crean pedidos por API</td></tr>
+      <tr><td><code>order.status_changed</code></td><td>Cambia el estado de un pedido (incluye POD)</td></tr>
+      <tr><td><code>route.planned</code></td><td>El optimizador genera rutas</td></tr>
+      <tr><td><code>route.started</code></td><td>Una ruta es despachada</td></tr>
+      <tr><td><code>route.transfer_completed</code></td><td>La nodriza completa un transbordo</td></tr>
+      <tr><td><code>route.completed</code></td><td>Una ruta finaliza</td></tr>
+    </table>
+
+    <h2 id="kpis">KPIs y eventos</h2>
+    <div class="endpoint"><span class="method get">GET</span>/kpis <span class="muted">— resumen operativo (cumplimiento, km, pedidos por comuna)</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/events <span class="muted">— feed de actividad reciente</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/company <span class="muted">— datos de la empresa y su centro de distribución</span></div>
+    <div class="endpoint"><span class="method post">POST</span>/reset <span class="muted">— restaura los datos de demostración</span></div>
+    <p class="muted" style="margin-top:26px">RutaFleet TMS · réplica funcional educativa de un TMS de última milla. No afiliada a ningún proveedor comercial.</p>
+  </main>
+</body>
+</html>

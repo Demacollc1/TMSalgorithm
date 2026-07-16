@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RutaFleet TMS — Gestión de última milla</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">🚚</span>
+      <div>
+        <div class="brand-name">RutaFleet</div>
+        <div class="brand-sub">TMS última milla</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#/panel" data-view="panel" class="nav-item active"><span>📊</span> Panel</a>
+      <a href="#/pedidos" data-view="pedidos" class="nav-item"><span>📦</span> Pedidos</a>
+      <a href="#/flota" data-view="flota" class="nav-item"><span>🚛</span> Flota</a>
+      <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
+      <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
+      <a href="#/webhooks" data-view="webhooks" class="nav-item"><span>🔗</span> Integraciones</a>
+      <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="btn-reset" class="btn btn-ghost btn-sm" title="Restaura los datos de demostración">↺ Reiniciar demo</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- ============================ PANEL ============================ -->
+    <section id="view-panel" class="view">
+      <header class="view-header">
+        <h1>Panel de control</h1>
+        <p class="muted">Resumen operativo del día · <span id="panel-depot"></span></p>
+      </header>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Pedidos por comuna</h3>
+          <div id="chart-communes" class="bar-chart"></div>
+        </div>
+        <div class="card">
+          <h3>Actividad reciente</h3>
+          <ul id="event-feed" class="event-feed"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== PEDIDOS =========================== -->
+    <section id="view-pedidos" class="view hidden">
+      <header class="view-header">
+        <h1>Pedidos</h1>
+        <div class="header-actions">
+          <select id="filter-status" class="input">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="asignado">Asignado</option>
+            <option value="en_ruta">En ruta</option>
+            <option value="entregado">Entregado</option>
+            <option value="recolectado">Recolectado</option>
+            <option value="no_entregado">No entregado</option>
+          </select>
+          <button class="btn btn-primary" id="btn-new-order">+ Nuevo pedido</button>
+        </div>
+      </header>
+      <div class="card table-card">
+        <table class="table" id="orders-table">
+          <thead>
+            <tr>
+              <th>Código</th><th>Tipo</th><th>Cliente</th><th>Dirección</th>
+              <th>Ventana</th><th>Kg</th><th>Estado</th><th>POD</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================ FLOTA ============================ -->
+    <section id="view-flota" class="view hidden">
+      <header class="view-header">
+        <h1>Flota y conductores</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="btn-new-driver">+ Conductor</button>
+          <button class="btn btn-primary" id="btn-new-vehicle">+ Vehículo</button>
+        </div>
+      </header>
+      <div class="two-col">
+        <div class="card table-card">
+          <h3>Vehículos</h3>
+          <table class="table" id="vehicles-table">
+            <thead><tr><th>Patente</th><th>Nombre</th><th>Tipo</th><th>Cap. kg</th><th>Cap. m³</th><th>Conductor</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card table-card">
+          <h3>Conductores</h3>
+          <table class="table" id="drivers-table">
+            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Licencia</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== PLANIFICACIÓN ======================== -->
+    <section id="view-planificacion" class="view hidden">
+      <header class="view-header">
+        <h1>Planificación de rutas</h1>
+        <p class="muted">Optimiza pedidos pendientes con el motor VRP: capacidades, recolecciones y madre nodriza.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Parámetros</h3>
+          <label class="field">
+            <span>Hora de inicio</span>
+            <input type="time" id="opt-start" class="input" value="08:30" />
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-return" checked />
+            <span>Regresar al centro de distribución</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-nodriza" />
+            <span>Usar <strong>madre nodriza</strong> (transbordo a vehículos satélite)</span>
+          </label>
+          <div class="field">
+            <span>Vehículos a considerar</span>
+            <div id="opt-vehicles" class="check-list"></div>
+          </div>
+          <div class="field">
+            <span id="opt-orders-count" class="muted"></span>
+          </div>
+          <button class="btn btn-primary btn-block" id="btn-optimize">⚙️ Optimizar rutas</button>
+          <div id="opt-summary" class="opt-summary"></div>
+          <div id="routes-list" class="routes-list"></div>
+        </div>
+        <div class="plan-map card">
+          <div id="map-plan" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== MONITOREO ========================== -->
+    <section id="view-monitoreo" class="view hidden">
+      <header class="view-header">
+        <h1>Monitoreo en tiempo real</h1>
+        <p class="muted">Posición GPS simulada de la flota, avance de paradas y prueba de entrega.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Rutas en curso</h3>
+          <div id="live-routes" class="routes-list"></div>
+          <h3 style="margin-top:16px">Rutas planificadas</h3>
+          <div id="planned-routes" class="routes-list"></div>
+        </div>
+        <div class="plan-map card">
+          <div id="map-live" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== WEBHOOKS =========================== -->
+    <section id="view-webhooks" class="view hidden">
+      <header class="view-header">
+        <h1>Integraciones · Webhooks</h1>
+        <p class="muted">Recibe notificaciones HTTP cuando cambie el estado de pedidos y rutas.</p>
+      </header>
+      <div class="card" style="max-width:640px">
+        <div class="field"><span>URL de destino</span><input class="input" id="wh-url" placeholder="https://mi-sistema.cl/webhook" /></div>
+        <div class="field"><span>Eventos (separados por coma, * para todos)</span><input class="input" id="wh-events" placeholder="order.status_changed, route.completed" /></div>
+        <button class="btn btn-primary" id="btn-add-webhook">+ Suscribir webhook</button>
+      </div>
+      <div class="card table-card" style="margin-top:16px">
+        <table class="table" id="webhooks-table">
+          <thead><tr><th>ID</th><th>URL</th><th>Eventos</th><th>Último envío</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================ MODAL ============================ -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
