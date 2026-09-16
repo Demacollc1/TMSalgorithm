@@ -1,7 +1,7 @@
 {
-  "name": "rutafleet-tms",
+  "name": "macotrans-tms",
   "version": "1.0.0",
-  "description": "RutaFleet — TMS de última milla: optimización de rutas con madre nodriza y recolecciones, gestión de flota, monitoreo y prueba de entrega",
+  "description": "Macotrans — TMS de última milla: optimización de rutas con madre nodriza y recolecciones, gestión de flota, monitoreo y prueba de entrega",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

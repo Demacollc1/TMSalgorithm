@@ -49,13 +49,18 @@ function completeStop(route, stop) {
       lng: stop.lng,
     };
     logEvent('order.' + done, { orderId: order.id, code: order.code, routeId: route.id });
-    dispatchWebhooks('order.status_changed', {
-      orderId: order.id,
-      code: order.code,
-      status: order.status,
-      routeId: route.id,
-      pod: order.pod,
-    });
+    dispatchWebhooks(
+      'order.status_changed',
+      {
+        orderId: order.id,
+        code: order.code,
+        trackingCode: order.trackingCode,
+        status: order.status,
+        routeId: route.id,
+        pod: order.pod,
+      },
+      { companyId: order.companyId }
+    );
   } else if (stop.transferPointId) {
     logEvent('route.transbordo', { routeId: route.id, transferPointId: stop.transferPointId });
     dispatchWebhooks('route.transfer_completed', {

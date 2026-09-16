@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 /**
  * Almacén de datos en memoria con persistencia opcional a JSON.
@@ -18,7 +19,7 @@ function nextId(prefix) {
 
 const db = {
   company: {
-    name: 'RutaFleet TMS',
+    name: 'Macotrans TMS',
     depot: {
       name: 'Centro de Distribución Santiago',
       address: 'Av. Presidente Eduardo Frei Montalva 1200, Renca, Santiago',
@@ -26,16 +27,63 @@ const db = {
       lng: -70.6883,
     },
   },
+  companies: [], // empresas cliente (tenants): ERPs, e-commerce, portal público
   orders: [],
   vehicles: [],
   drivers: [],
   routes: [],
   webhooks: [],
+  integrationLogs: [], // auditoría de llamadas al API de integración
   events: [], // registro de eventos (feed de actividad y webhooks)
 };
 
+function newApiKey() {
+  return 'mk_' + crypto.randomBytes(18).toString('hex');
+}
+
+function newTrackingCode() {
+  // código corto y legible para seguimiento público (sin caracteres ambiguos)
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += alphabet[crypto.randomInt(alphabet.length)];
+  return 'MAC-' + code;
+}
+
 // ---------------------------------------------------------------- seed
 function seedData() {
+  db.companies = [
+    {
+      id: 'CMP-1',
+      name: 'Comercial Andina SpA',
+      type: 'erp',
+      contactEmail: 'operaciones@comercialandina.cl',
+      apiKey: newApiKey(),
+      webhookUrl: '',
+      active: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'CMP-2',
+      name: 'TiendaVeloz.cl',
+      type: 'ecommerce',
+      contactEmail: 'logistica@tiendaveloz.cl',
+      apiKey: newApiKey(),
+      webhookUrl: '',
+      active: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'CMP-3',
+      name: 'Clientes Portal Web',
+      type: 'portal',
+      contactEmail: 'contacto@macotrans.cl',
+      apiKey: newApiKey(),
+      webhookUrl: '',
+      active: true,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
   db.drivers = [
     { id: 'DRV-1', name: 'Carolina Fuentes', phone: '+56 9 8123 4501', license: 'A2', status: 'disponible' },
     { id: 'DRV-2', name: 'Jorge Miranda', phone: '+56 9 8123 4502', license: 'A4', status: 'disponible' },
@@ -73,8 +121,15 @@ function seedData() {
     ['PED-0018', 'recoleccion', 'Av. Lo Espejo 0341', 'Lo Espejo', -33.5230, -70.6899, 260, 2.2, ['12:00', '17:00'], 'Muebles La Fábrica'],
   ];
 
-  db.orders = seedOrders.map((o) => ({
+  // reparte los pedidos seed entre las empresas cliente para mostrar
+  // la planificación consolidada multi-empresa
+  db.orders = seedOrders.map((o, i) => ({
     id: nextId('ORD'),
+    companyId: i < 6 ? 'CMP-1' : i < 12 ? 'CMP-2' : 'CMP-3',
+    source: i < 6 ? 'api-erp' : i < 12 ? 'api-ecommerce' : 'portal',
+    trackingCode: newTrackingCode(),
+    price: null,
+    contact: null,
     code: o[0],
     type: o[1],
     address: `${o[2]}, ${o[3]}`,
@@ -129,10 +184,23 @@ function reset() {
   db.orders = [];
   db.routes = [];
   db.events = [];
+  db.integrationLogs = [];
   seq = 1000;
   seedData();
   db.vehicles.forEach((v) => (v.status = 'disponible'));
   save();
+}
+
+function logIntegration(companyId, method, pathName, status) {
+  db.integrationLogs.unshift({
+    id: nextId('LOG'),
+    companyId,
+    method,
+    path: pathName,
+    status,
+    at: new Date().toISOString(),
+  });
+  if (db.integrationLogs.length > 500) db.integrationLogs.length = 500;
 }
 
 function logEvent(type, payload) {
@@ -147,4 +215,4 @@ function logEvent(type, payload) {
   return event;
 }
 
-module.exports = { db, nextId, init, save, reset, logEvent };
+module.exports = { db, nextId, init, save, reset, logEvent, logIntegration, newApiKey, newTrackingCode };

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RutaFleet TMS — Gestión de última milla</title>
+  <title>Macotrans TMS — Gestión de última milla</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
   <link rel="stylesheet" href="/css/styles.css" />
@@ -13,7 +13,7 @@
     <div class="brand">
       <span class="brand-icon">🚚</span>
       <div>
-        <div class="brand-name">RutaFleet</div>
+        <div class="brand-name">Macotrans</div>
         <div class="brand-sub">TMS última milla</div>
       </div>
     </div>
@@ -23,7 +23,9 @@
       <a href="#/flota" data-view="flota" class="nav-item"><span>🚛</span> Flota</a>
       <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
       <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
+      <a href="#/empresas" data-view="empresas" class="nav-item"><span>🏢</span> Empresas</a>
       <a href="#/webhooks" data-view="webhooks" class="nav-item"><span>🔗</span> Integraciones</a>
+      <a href="/portal" target="_blank" class="nav-item"><span>🌐</span> Portal público</a>
       <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
     </nav>
     <div class="sidebar-footer">
@@ -72,7 +74,7 @@
         <table class="table" id="orders-table">
           <thead>
             <tr>
-              <th>Código</th><th>Tipo</th><th>Cliente</th><th>Dirección</th>
+              <th>Código</th><th>Seguimiento</th><th>Tipo</th><th>Empresa</th><th>Cliente</th><th>Dirección</th>
               <th>Ventana</th><th>Kg</th><th>Estado</th><th>POD</th><th></th>
             </tr>
           </thead>
@@ -162,6 +164,30 @@
         <div class="plan-map card">
           <div id="map-live" class="map"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ========================== EMPRESAS =========================== -->
+    <section id="view-empresas" class="view hidden">
+      <header class="view-header">
+        <h1>Empresas cliente</h1>
+        <p class="muted">Tenants que delegan su logística en Macotrans: ERPs, facturación electrónica y e-commerce. Cada empresa usa su API key en el encabezado <code>X-API-Key</code> del API de integración.</p>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-new-company">+ Nueva empresa</button>
+        </div>
+      </header>
+      <div class="card table-card">
+        <table class="table" id="companies-table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Pedidos</th><th>API Key</th><th>Webhook</th><th>Estado</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card table-card" style="margin-top:16px">
+        <h3>Actividad del API de integración</h3>
+        <table class="table" id="intlogs-table">
+          <thead><tr><th>Fecha</th><th>Empresa</th><th>Método</th><th>Ruta</th><th>HTTP</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </section>
 

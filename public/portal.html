@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macotrans — Contrata tu flete</title>
+  <meta name="description" content="Macotrans: fletes y logística de última milla en Santiago. Cotiza y contrata en línea, con seguimiento en tiempo real." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
+  <style>
+    :root {
+      --primary: #0d2c54; --accent: #ff7a00; --accent-dark: #d96800;
+      --bg: #f6f8fb; --surface: #fff; --border: #e2e8f1;
+      --text: #16233a; --muted: #5d6f88; --ok: #0a8f6c; --danger: #d64545;
+      --radius: 14px;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.55; }
+
+    /* ------- cabecera ------- */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 19px; letter-spacing: 0.3px; }
+    .logo span.mark { font-size: 24px; }
+    .logo em { color: var(--accent); font-style: normal; }
+    nav.top a { color: #cdd8e8; text-decoration: none; font-size: 14px; margin-left: 14px; font-weight: 600; }
+    nav.top a:hover { color: #fff; }
+
+    /* ------- hero ------- */
+    .hero {
+      background: linear-gradient(160deg, var(--primary) 0%, #14406f 70%);
+      color: #fff; padding: 40px 16px 86px; text-align: center;
+    }
+    .hero h1 { font-size: 28px; line-height: 1.25; max-width: 560px; margin: 0 auto 10px; }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero p { color: #c3d2e5; max-width: 460px; margin: 0 auto; font-size: 15px; }
+    .hero .badges { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .hero .badge { background: rgba(255,255,255,0.12); border-radius: 999px; padding: 6px 14px; font-size: 13px; }
+
+    main { max-width: 560px; margin: -56px auto 40px; padding: 0 16px; }
+    @media (min-width: 900px) { main { max-width: 640px; } }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 6px 24px rgba(13, 44, 84, 0.10); padding: 20px; margin-bottom: 20px;
+    }
+    .tabs { display: flex; gap: 6px; margin-bottom: 18px; }
+    .tab {
+      flex: 1; text-align: center; padding: 11px 8px; border-radius: 10px; font-weight: 700;
+      font-size: 14.5px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+    }
+    .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    .input, select, textarea {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 12px; font-size: 16px; background: #fff; color: var(--text);
+    }
+    .input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 420px) { .row { grid-template-columns: 1fr; } }
+
+    .btn {
+      display: block; width: 100%; border: none; border-radius: 12px; padding: 15px;
+      font-size: 16.5px; font-weight: 800; cursor: pointer; transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.05); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); margin-top: 10px; }
+
+    .quote-box {
+      background: #f0f7f4; border: 1.5px solid #bfe3d5; border-radius: 12px;
+      padding: 16px; margin: 14px 0; text-align: center;
+    }
+    .quote-box .price { font-size: 32px; font-weight: 800; color: var(--ok); }
+    .quote-box .detail { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .success-box { text-align: center; padding: 10px 0; }
+    .success-box .icon { font-size: 46px; }
+    .success-box .code {
+      font-size: 26px; font-weight: 800; letter-spacing: 2px; color: var(--primary);
+      background: var(--bg); border: 2px dashed var(--accent); border-radius: 12px;
+      padding: 12px; margin: 14px 0; user-select: all;
+    }
+
+    /* ------- seguimiento ------- */
+    .track-status { text-align: center; margin: 14px 0 4px; }
+    .track-status .badge-big {
+      display: inline-block; padding: 8px 20px; border-radius: 999px; font-weight: 800; font-size: 15px;
+    }
+    .st-pendiente, .st-asignado { background: #e8edf5; color: #47597a; }
+    .st-en_ruta { background: #fff1de; color: #b06f00; }
+    .st-entregado, .st-recolectado { background: #dff3ec; color: var(--ok); }
+    .st-no_entregado { background: #fdeaea; color: var(--danger); }
+    .timeline { list-style: none; margin: 18px 0 6px; }
+    .timeline li { display: flex; gap: 12px; align-items: flex-start; padding: 7px 0; }
+    .timeline .dot {
+      width: 14px; height: 14px; border-radius: 50%; background: var(--border); margin-top: 5px; flex-shrink: 0;
+      position: relative;
+    }
+    .timeline li.done .dot { background: var(--ok); }
+    .timeline li.current .dot { background: var(--accent); box-shadow: 0 0 0 4px #ffe4cc; }
+    .timeline .t-label { font-weight: 700; font-size: 14.5px; }
+    .timeline .t-sub { font-size: 12.5px; color: var(--muted); }
+
+    .error-msg { color: var(--danger); font-size: 14px; margin-top: 8px; text-align: center; }
+    .muted { color: var(--muted); font-size: 13px; }
+
+    /* ------- secciones informativas ------- */
+    .features { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
+    @media (min-width: 560px) { .features { grid-template-columns: repeat(3, 1fr); } }
+    .feature { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; text-align: center; }
+    .feature .fi { font-size: 30px; }
+    .feature h3 { font-size: 15px; margin: 6px 0 4px; }
+    .feature p { font-size: 13px; color: var(--muted); }
+
+    footer { background: var(--primary); color: #b9c8dc; text-align: center; padding: 26px 16px; font-size: 13px; }
+    footer a { color: #fff; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><span class="mark">🚚</span>Maco<em>trans</em></div>
+    <nav class="top">
+      <a href="#contratar" id="nav-contratar">Contratar</a>
+      <a href="#seguimiento" id="nav-seguimiento">Seguimiento</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Tu flete, cotizado y agendado <em>en 2 minutos</em></h1>
+    <p>Transporte y logística de última milla en Santiago. Precio al instante, seguimiento en línea y comprobante de entrega digital.</p>
+    <div class="badges">
+      <span class="badge">✔ Precio inmediato</span>
+      <span class="badge">✔ Seguimiento GPS</span>
+      <span class="badge">✔ Comprobante digital</span>
+    </div>
+  </section>
+
+  <main>
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" id="tab-contratar">Contratar flete</div>
+        <div class="tab" id="tab-seguimiento">Seguir mi envío</div>
+      </div>
+
+      <!-- ==================== CONTRATAR ==================== -->
+      <div id="panel-contratar">
+        <form id="form-flete">
+          <div class="field">
+            <label>¿Desde qué comuna retiramos?</label>
+            <select id="f-origen" required></select>
+          </div>
+          <div class="field">
+            <label>¿En qué comuna entregamos?</label>
+            <select id="f-destino" required></select>
+          </div>
+          <div class="field">
+            <label>Dirección de entrega</label>
+            <input class="input" id="f-direccion" placeholder="Calle y número" required />
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Peso aprox. (kg)</label>
+              <input class="input" id="f-peso" type="number" min="1" value="50" required />
+            </div>
+            <div class="field">
+              <label>Volumen aprox. (m³)</label>
+              <input class="input" id="f-volumen" type="number" min="0" step="0.1" value="0.5" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Tipo de servicio</label>
+              <select id="f-servicio">
+                <option value="normal">Normal (24–48 h)</option>
+                <option value="express">Express (mismo día)</option>
+                <option value="programado">Programado (−10%)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Fecha</label>
+              <input class="input" id="f-fecha" type="date" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>Tu nombre</label>
+            <input class="input" id="f-nombre" required />
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Teléfono</label>
+              <input class="input" id="f-telefono" type="tel" placeholder="+56 9 ..." required />
+            </div>
+            <div class="field">
+              <label>Email (opcional)</label>
+              <input class="input" id="f-email" type="email" />
+            </div>
+          </div>
+
+          <div id="quote-result" class="hidden quote-box">
+            <div class="price" id="quote-price"></div>
+            <div class="detail" id="quote-detail"></div>
+          </div>
+
+          <button type="submit" class="btn btn-accent" id="btn-cotizar">Cotizar mi flete</button>
+          <button type="button" class="btn btn-outline hidden" id="btn-confirmar">Confirmar y contratar</button>
+          <div class="error-msg hidden" id="flete-error"></div>
+        </form>
+
+        <div id="flete-exito" class="success-box hidden">
+          <div class="icon">🎉</div>
+          <h2>¡Flete contratado!</h2>
+          <p class="muted">Guarda tu código de seguimiento:</p>
+          <div class="code" id="exito-codigo"></div>
+          <p class="muted" id="exito-detalle"></p>
+          <button class="btn btn-outline" id="btn-otro">Contratar otro flete</button>
+        </div>
+      </div>
+
+      <!-- ==================== SEGUIMIENTO ==================== -->
+      <div id="panel-seguimiento" class="hidden">
+        <div class="field">
+          <label>Código de seguimiento</label>
+          <input class="input" id="t-codigo" placeholder="MAC-XXXXXX" style="text-transform:uppercase" />
+        </div>
+        <button class="btn btn-accent" id="btn-track">Consultar estado</button>
+        <div class="error-msg hidden" id="track-error"></div>
+
+        <div id="track-result" class="hidden">
+          <div class="track-status"><span class="badge-big" id="track-badge"></span></div>
+          <ul class="timeline" id="track-timeline"></ul>
+          <p class="muted" id="track-extra" style="text-align:center"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feature"><div class="fi">📦</div><h3>Carga cuidada</h3><p>Entregas y recolecciones con manejo profesional y comprobante digital.</p></div>
+      <div class="feature"><div class="fi">🛰️</div><h3>Rutas optimizadas</h3><p>Planificamos con algoritmos propios para llegar a tiempo, siempre.</p></div>
+      <div class="feature"><div class="fi">🔗</div><h3>Integración API</h3><p>¿Tienes ERP o e-commerce? Conéctate a nuestra <a href="/docs#integracion">API de integración</a>.</p></div>
+    </div>
+
+    <div class="card" id="empresas">
+      <h2 style="font-size:18px;margin-bottom:8px">¿Eres empresa?</h2>
+      <p class="muted" style="font-size:14.5px">Delega tu logística en Macotrans: integra tu ERP, sistema de facturación electrónica o tienda online con nuestra API REST y webhooks. Tus pedidos entran directo a nuestra planificación consolidada de rutas y recibes cada cambio de estado en tu sistema.</p>
+      <a href="/docs#integracion"><button class="btn btn-outline" style="margin-top:12px">Ver documentación de la API</button></a>
+    </div>
+  </main>
+
+  <footer>
+    Macotrans SpA · Santiago de Chile · <a href="mailto:contacto@macotrans.cl">contacto@macotrans.cl</a><br />
+    Portal de demostración — <a href="/">acceso operaciones (TMS)</a>
+  </footer>
+
+  <script>
+    'use strict';
+    // Comunas de referencia con coordenadas aproximadas (Gran Santiago)
+    const COMUNAS = {
+      'Santiago Centro': [-33.4489, -70.6693], 'Providencia': [-33.4212, -70.6106],
+      'Las Condes': [-33.4172, -70.6015], 'Vitacura': [-33.3901, -70.5754],
+      'Ñuñoa': [-33.4548, -70.6072], 'La Florida': [-33.5423, -70.5638],
+      'Maipú': [-33.4826, -70.7541], 'Pudahuel': [-33.4419, -70.7583],
+      'San Miguel': [-33.4972, -70.6535], 'Macul': [-33.4907, -70.6011],
+      'Peñalolén': [-33.4903, -70.5741], 'Recoleta': [-33.4059, -70.6408],
+      'Independencia': [-33.4093, -70.6640], 'Conchalí': [-33.3949, -70.6791],
+      'Renca': [-33.4040, -70.6883], 'Cerrillos': [-33.5169, -70.7204],
+      'San Joaquín': [-33.5089, -70.6284], 'Quilicura': [-33.3600, -70.7330],
+      'Huechuraba': [-33.3695, -70.6350], 'Estación Central': [-33.4599, -70.6950],
+    };
+
+    const $ = (id) => document.getElementById(id);
+    let lastQuote = null;
+
+    // pobla selects y fecha mínima
+    const opts = Object.keys(COMUNAS).sort().map((c) => `<option>${c}</option>`).join('');
+    $('f-origen').innerHTML = opts;
+    $('f-destino').innerHTML = opts;
+    $('f-destino').selectedIndex = 1;
+    const today = new Date().toISOString().slice(0, 10);
+    $('f-fecha').value = today;
+    $('f-fecha').min = today;
+
+    // tabs
+    function showTab(name) {
+      $('panel-contratar').classList.toggle('hidden', name !== 'contratar');
+      $('panel-seguimiento').classList.toggle('hidden', name !== 'seguimiento');
+      $('tab-contratar').classList.toggle('active', name === 'contratar');
+      $('tab-seguimiento').classList.toggle('active', name === 'seguimiento');
+    }
+    $('tab-contratar').onclick = () => showTab('contratar');
+    $('tab-seguimiento').onclick = () => showTab('seguimiento');
+    $('nav-contratar').onclick = () => showTab('contratar');
+    $('nav-seguimiento').onclick = () => showTab('seguimiento');
+
+    function coords(sel) {
+      const [lat, lng] = COMUNAS[sel.value];
+      return { lat, lng, commune: sel.value };
+    }
+    function payloadFromForm() {
+      return {
+        origin: coords($('f-origen')),
+        destination: {
+          ...coords($('f-destino')),
+          address: $('f-direccion').value.trim() + ', ' + $('f-destino').value,
+        },
+        weightKg: Number($('f-peso').value) || 0,
+        volumeM3: Number($('f-volumen').value) || 0,
+        service: $('f-servicio').value,
+        date: $('f-fecha').value,
+        contact: {
+          name: $('f-nombre').value.trim(),
+          phone: $('f-telefono').value.trim(),
+          email: $('f-email').value.trim(),
+        },
+        notes: 'Retiro en comuna: ' + $('f-origen').value,
+      };
+    }
+    function showError(id, msg) {
+      const el = $(id);
+      el.textContent = msg;
+      el.classList.toggle('hidden', !msg);
+    }
+    const fmtCLP = (n) => '$' + n.toLocaleString('es-CL');
+
+    // cotizar → confirmar
+    $('form-flete').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showError('flete-error', '');
+      const p = payloadFromForm();
+      try {
+        const res = await fetch('/api/public/v1/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(p),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'No se pudo cotizar');
+        lastQuote = json.data;
+        $('quote-price').textContent = fmtCLP(lastQuote.priceClp);
+        $('quote-detail').textContent =
+          `${lastQuote.distanceKm} km aprox · servicio ${p.service} · IVA incluido`;
+        $('quote-result').classList.remove('hidden');
+        $('btn-confirmar').classList.remove('hidden');
+        $('btn-cotizar').textContent = 'Recotizar';
+      } catch (err) {
+        showError('flete-error', err.message);
+      }
+    });
+
+    $('btn-confirmar').addEventListener('click', async () => {
+      showError('flete-error', '');
+      $('btn-confirmar').disabled = true;
+      try {
+        const res = await fetch('/api/public/v1/freights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payloadFromForm()),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'No se pudo contratar');
+        $('form-flete').classList.add('hidden');
+        $('flete-exito').classList.remove('hidden');
+        $('exito-codigo').textContent = json.data.trackingCode;
+        $('exito-detalle').textContent =
+          `Valor: ${fmtCLP(json.data.priceClp)} · Fecha: ${json.data.date}. Te contactaremos para coordinar el retiro.`;
+      } catch (err) {
+        showError('flete-error', err.message);
+      } finally {
+        $('btn-confirmar').disabled = false;
+      }
+    });
+
+    $('btn-otro').addEventListener('click', () => {
+      $('flete-exito').classList.add('hidden');
+      $('form-flete').classList.remove('hidden');
+      $('quote-result').classList.add('hidden');
+      $('btn-confirmar').classList.add('hidden');
+      $('btn-cotizar').textContent = 'Cotizar mi flete';
+    });
+
+    // seguimiento
+    const STATUS_LABEL = {
+      pendiente: 'Recibido', asignado: 'Programado', en_ruta: 'En camino',
+      entregado: 'Entregado', recolectado: 'Recolectado', no_entregado: 'No entregado',
+    };
+    const STEPS = ['pendiente', 'asignado', 'en_ruta', 'entregado'];
+
+    $('btn-track').addEventListener('click', async () => {
+      showError('track-error', '');
+      $('track-result').classList.add('hidden');
+      const code = $('t-codigo').value.trim().toUpperCase();
+      if (!code) return showError('track-error', 'Ingresa tu código de seguimiento');
+      try {
+        const res = await fetch('/api/public/v1/tracking/' + encodeURIComponent(code));
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Código no encontrado');
+        const t = json.data;
+        $('track-badge').textContent = STATUS_LABEL[t.status] || t.status;
+        $('track-badge').className = 'badge-big st-' + t.status;
+        const doneStatus = t.type === 'recoleccion' ? 'recolectado' : 'entregado';
+        const effective = t.status === doneStatus ? 'entregado' : t.status;
+        const idx = STEPS.indexOf(effective);
+        const LABELS = {
+          pendiente: ['Pedido recibido', 'Registramos tu solicitud'],
+          asignado: ['Programado en ruta', 'Un vehículo fue asignado'],
+          en_ruta: ['En camino', t.eta ? 'Hora estimada: ' + t.eta : 'El vehículo está en ruta'],
+          entregado: [t.type === 'recoleccion' ? 'Recolectado' : 'Entregado',
+            t.pod ? 'Recibió: ' + t.pod.receiver : 'Con comprobante digital'],
+        };
+        $('track-timeline').innerHTML = STEPS.map((s, i) => `
+          <li class="${i < idx ? 'done' : i === idx ? 'current' : ''}">
+            <div class="dot"></div>
+            <div><div class="t-label">${LABELS[s][0]}</div><div class="t-sub">${LABELS[s][1]}</div></div>
+          </li>`).join('');
+        $('track-extra').textContent = t.vehiclePosition
+          ? 'Posición del vehículo actualizada: ' + new Date(t.vehiclePosition.at).toLocaleTimeString('es-CL')
+          : (t.status === 'no_entregado' ? 'Hubo un problema con la entrega. Te contactaremos.' : '');
+        $('track-result').classList.remove('hidden');
+      } catch (err) {
+        showError('track-error', err.message);
+      }
+    });
+  </script>
+</body>
+</html>

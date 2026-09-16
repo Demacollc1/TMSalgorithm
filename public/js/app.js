@@ -1,12 +1,13 @@
 'use strict';
 
-/* RutaFleet TMS — SPA. Vanilla JS + Leaflet. */
+/* Macotrans TMS — SPA. Vanilla JS + Leaflet. */
 
 const API = '/api/v1';
 const ROUTE_COLORS = ['#1f5eff', '#00b386', '#e5484d', '#f0a020', '#8b5cf6', '#0ea5e9', '#d946ef', '#84cc16'];
 
 const state = {
   company: null,
+  companies: [],
   orders: [],
   vehicles: [],
   drivers: [],
@@ -65,11 +66,12 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
 
 // ------------------------------------------------------------ carga de datos
 async function refreshData() {
-  [state.orders, state.vehicles, state.drivers, state.routes] = await Promise.all([
+  [state.orders, state.vehicles, state.drivers, state.routes, state.companies] = await Promise.all([
     api('/orders'),
     api('/vehicles'),
     api('/drivers'),
     api('/routes'),
+    api('/companies'),
   ]);
   if (!state.company) state.company = await api('/company');
 }
@@ -105,6 +107,7 @@ async function render() {
   if (view === 'flota') renderFleet();
   if (view === 'planificacion') renderPlanning();
   if (view === 'monitoreo') renderMonitoring();
+  if (view === 'empresas') renderCompanies();
   if (view === 'webhooks') renderWebhooks();
 }
 
@@ -156,6 +159,12 @@ async function renderPanel() {
       .join('') || '<li><span>Sin actividad todavía. Planifica rutas para comenzar.</span></li>';
 }
 
+function companyName(companyId) {
+  if (!companyId) return '—';
+  const c = state.companies.find((x) => x.id === companyId);
+  return c ? c.name : companyId;
+}
+
 // ============================================================ PEDIDOS
 function renderOrders() {
   const filter = document.getElementById('filter-status').value;
@@ -165,7 +174,9 @@ function renderOrders() {
       (o) => `
     <tr>
       <td><strong>${esc(o.code)}</strong></td>
+      <td><code>${esc(o.trackingCode || '—')}</code></td>
       <td>${badge(o.type)}</td>
+      <td>${esc(companyName(o.companyId))}</td>
       <td>${esc(o.customer)}</td>
       <td class="wrap">${esc(o.address)}</td>
       <td>${esc(o.timeWindow.start)}–${esc(o.timeWindow.end)}</td>
@@ -664,6 +675,145 @@ function stopPolling() {
   if (state.pollTimer) clearInterval(state.pollTimer);
   state.pollTimer = null;
 }
+
+// ============================================================ EMPRESAS
+const COMPANY_TYPE_LABEL = { erp: 'ERP / Facturación', ecommerce: 'E-commerce', portal: 'Portal público' };
+
+async function renderCompanies() {
+  const logs = await api('/integration-logs');
+  document.querySelector('#companies-table tbody').innerHTML = state.companies
+    .map((c) => {
+      const orderCount = state.orders.filter((o) => o.companyId === c.id).length;
+      return `
+      <tr>
+        <td>${esc(c.id)}</td>
+        <td><strong>${esc(c.name)}</strong><br><span class="muted">${esc(c.contactEmail || '')}</span></td>
+        <td>${badge(COMPANY_TYPE_LABEL[c.type] || c.type, c.type === 'ecommerce' ? 'entrega' : 'planificada')}</td>
+        <td>${orderCount}</td>
+        <td>
+          <code id="key-${c.id}">••••••••</code>
+          <button class="btn-link" onclick="toggleKey('${c.id}')">Ver</button>
+          <button class="btn-link" onclick="copyKey('${c.id}')">Copiar</button>
+          <button class="btn-link" onclick="regenKey('${c.id}')">Regenerar</button>
+        </td>
+        <td class="wrap">${c.webhookUrl ? esc(c.webhookUrl) : '—'}</td>
+        <td>${badge(c.active !== false ? 'disponible' : 'no_entregado')}</td>
+        <td>
+          <button class="btn-link" onclick="editCompany('${c.id}')">Editar</button>
+          <button class="btn-link danger" onclick="deleteCompany('${c.id}')">Eliminar</button>
+        </td>
+      </tr>`;
+    })
+    .join('');
+
+  document.querySelector('#intlogs-table tbody').innerHTML = logs.length
+    ? logs
+        .slice(0, 30)
+        .map(
+          (l) => `
+      <tr>
+        <td>${new Date(l.at).toLocaleString('es-CL')}</td>
+        <td>${esc(companyName(l.companyId))}</td>
+        <td><code>${esc(l.method)}</code></td>
+        <td class="wrap">${esc(l.path)}</td>
+        <td>${badge(String(l.status), l.status < 400 ? 'entregado' : 'no_entregado')}</td>
+      </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="5" class="muted">Aún no hay llamadas al API de integración.</td></tr>';
+}
+
+window.toggleKey = (id) => {
+  const el = document.getElementById('key-' + id);
+  const c = state.companies.find((x) => x.id === id);
+  el.textContent = el.textContent === '••••••••' ? c.apiKey : '••••••••';
+};
+
+window.copyKey = async (id) => {
+  const c = state.companies.find((x) => x.id === id);
+  try {
+    await navigator.clipboard.writeText(c.apiKey);
+    toast('API key copiada al portapapeles');
+  } catch {
+    toast('No se pudo copiar; usa "Ver" y cópiala manualmente', true);
+  }
+};
+
+window.regenKey = async (id) => {
+  if (!confirm('¿Regenerar la API key? La clave actual dejará de funcionar de inmediato.')) return;
+  await api(`/companies/${id}/regenerate-key`, { method: 'PUT' });
+  toast('API key regenerada');
+  render();
+};
+
+function companyForm(c = {}) {
+  return `
+    <div class="form-grid">
+      <label class="field full"><span>Nombre</span><input class="input" id="c-name" value="${esc(c.name || '')}"/></label>
+      <label class="field"><span>Tipo</span>
+        <select class="input" id="c-type" style="width:100%">
+          <option value="erp" ${c.type === 'erp' ? 'selected' : ''}>ERP / Facturación electrónica</option>
+          <option value="ecommerce" ${c.type === 'ecommerce' ? 'selected' : ''}>E-commerce</option>
+          <option value="portal" ${c.type === 'portal' ? 'selected' : ''}>Portal público</option>
+        </select>
+      </label>
+      <label class="field"><span>Email de contacto</span><input class="input" id="c-email" value="${esc(c.contactEmail || '')}"/></label>
+      <label class="field full"><span>Webhook URL (notificaciones a su sistema)</span><input class="input" id="c-webhook" value="${esc(c.webhookUrl || '')}" placeholder="https://erp.empresa.cl/webhooks/macotrans"/></label>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="c-save">Guardar</button>
+    </div>`;
+}
+
+function readCompanyForm() {
+  return {
+    name: document.getElementById('c-name').value.trim(),
+    type: document.getElementById('c-type').value,
+    contactEmail: document.getElementById('c-email').value.trim(),
+    webhookUrl: document.getElementById('c-webhook').value.trim(),
+  };
+}
+
+document.getElementById('btn-new-company').addEventListener('click', () => {
+  openModal('Nueva empresa cliente', companyForm());
+  document.getElementById('c-save').onclick = async () => {
+    try {
+      const created = await api('/companies', { method: 'POST', body: readCompanyForm() });
+      closeModal();
+      toast(`Empresa creada. API key: ${created.apiKey.slice(0, 12)}…`);
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  };
+});
+
+window.editCompany = (id) => {
+  const c = state.companies.find((x) => x.id === id);
+  openModal('Editar empresa ' + c.name, companyForm(c));
+  document.getElementById('c-save').onclick = async () => {
+    try {
+      await api('/companies/' + id, { method: 'PUT', body: readCompanyForm() });
+      closeModal();
+      toast('Empresa actualizada');
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  };
+};
+
+window.deleteCompany = async (id) => {
+  if (!confirm('¿Eliminar esta empresa? Su API key dejará de funcionar.')) return;
+  try {
+    await api('/companies/' + id, { method: 'DELETE' });
+    toast('Empresa eliminada');
+    render();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
 
 // ============================================================ WEBHOOKS
 async function renderWebhooks() {

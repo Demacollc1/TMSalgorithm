@@ -4,6 +4,8 @@
 
 const assert = require('assert');
 const { haversineKm, centroid, interpolate } = require('../src/geo');
+const { quote, TARIFF } = require('../src/pricing');
+const { newTrackingCode, newApiKey } = require('../src/store');
 const {
   optimize,
   nearestNeighborOrder,
@@ -205,6 +207,57 @@ test('las paradas incluyen ETA con formato HH:MM', () => {
       assert.ok(/^\d{2}:\d{2}$/.test(s.eta), `ETA inválida: ${s.eta}`);
     }
   }
+});
+
+console.log('\nCotizador de fletes:');
+
+const STGO = { lat: -33.4489, lng: -70.6693 };
+const LASCONDES = { lat: -33.4172, lng: -70.6015 };
+
+test('quote: estructura y mínimos', () => {
+  const q = quote({ origin: STGO, destination: LASCONDES, weightKg: 100 });
+  assert.strictEqual(q.currency, 'CLP');
+  assert.ok(q.priceClp >= TARIFF.minClp);
+  assert.ok(q.distanceKm > 0);
+  assert.ok(q.breakdown.base === TARIFF.baseClp);
+});
+
+test('quote: express cuesta más que normal y programado menos', () => {
+  const base = { origin: STGO, destination: LASCONDES, weightKg: 100, volumeM3: 1 };
+  const normal = quote({ ...base, service: 'normal' }).priceClp;
+  const express = quote({ ...base, service: 'express' }).priceClp;
+  const prog = quote({ ...base, service: 'programado' }).priceClp;
+  assert.ok(express > normal, `express (${express}) debe superar normal (${normal})`);
+  assert.ok(prog <= normal, `programado (${prog}) no debe superar normal (${normal})`);
+});
+
+test('quote: más peso nunca abarata', () => {
+  const light = quote({ origin: STGO, destination: LASCONDES, weightKg: 10 }).priceClp;
+  const heavy = quote({ origin: STGO, destination: LASCONDES, weightKg: 900 }).priceClp;
+  assert.ok(heavy >= light);
+});
+
+test('quote: valida coordenadas', () => {
+  assert.throws(() => quote({ origin: STGO, destination: { lat: 'x' }, weightKg: 1 }));
+});
+
+console.log('\nIdentificadores:');
+
+test('trackingCode: formato MAC-XXXXXX y sin colisiones evidentes', () => {
+  const seen = new Set();
+  for (let i = 0; i < 200; i++) {
+    const c = newTrackingCode();
+    assert.ok(/^MAC-[A-Z2-9]{6}$/.test(c), `formato inválido: ${c}`);
+    seen.add(c);
+  }
+  assert.ok(seen.size > 195, 'demasiadas colisiones de códigos');
+});
+
+test('apiKey: prefijo mk_ y única', () => {
+  const a = newApiKey();
+  const b = newApiKey();
+  assert.ok(a.startsWith('mk_') && a.length > 20);
+  assert.notStrictEqual(a, b);
 });
 
 console.log(`\n${passed} pruebas OK, ${failed} fallidas\n`);

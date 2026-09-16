@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RutaFleet · Documentación API</title>
+  <title>Macotrans · Documentación API</title>
   <style>
     :root {
       --bg: #ffffff; --side: #f4f6fa; --border: #e3e8f0; --text: #1d2733;
@@ -37,10 +37,12 @@
 </head>
 <body>
   <aside>
-    <h1>🚚 RutaFleet API</h1>
+    <h1>🚚 Macotrans API</h1>
     <div class="sub">REST API · v1</div>
     <a href="#intro">Introducción</a>
     <a href="#auth">Autenticación</a>
+    <a href="#integracion">API de integración</a>
+    <a href="#publica">API pública (portal)</a>
     <a href="#orders">Pedidos</a>
     <a href="#vehicles">Vehículos</a>
     <a href="#drivers">Conductores</a>
@@ -54,11 +56,68 @@
   </aside>
   <main>
     <h2 id="intro">Introducción</h2>
-    <p>La API de <strong>RutaFleet TMS</strong> permite integrar tu ERP o e-commerce con la operación logística de última milla: crear pedidos, optimizar rutas (incluyendo <strong>madre nodriza</strong> y <strong>recolecciones</strong>), despachar vehículos, seguir su posición GPS y recibir la prueba de entrega.</p>
-    <p>Base URL: <code>http://localhost:3000/api/v1</code>. Todas las respuestas usan JSON con la forma <code>{ "data": ... }</code> y los errores <code>{ "error": "mensaje" }</code>.</p>
+    <p>La plataforma <strong>Macotrans</strong> expone tres APIs REST:</p>
+    <table>
+      <tr><th>API</th><th>Base URL</th><th>Autenticación</th><th>Para quién</th></tr>
+      <tr><td><strong>Integración</strong></td><td><code>/api/integration/v1</code></td><td><code>X-API-Key</code></td><td>ERPs, facturación electrónica y e-commerce que nos delegan logística</td></tr>
+      <tr><td><strong>Pública</strong></td><td><code>/api/public/v1</code></td><td>Sin autenticación</td><td>Portal web de contratación de fletes y seguimiento por código</td></tr>
+      <tr><td><strong>Interna (TMS)</strong></td><td><code>/api/v1</code></td><td>Uso interno del portal de operaciones</td><td>Planificación consolidada, flota, monitoreo</td></tr>
+    </table>
+    <p>Todas las respuestas usan JSON con la forma <code>{ "data": ... }</code> y los errores <code>{ "error": "mensaje" }</code>.</p>
 
     <h2 id="auth">Autenticación</h2>
-    <p>Esta réplica de demostración no exige credenciales. En un despliegue real se usaría un encabezado <code>Authorization: Bearer &lt;api_key&gt;</code> por empresa.</p>
+    <p>Cada empresa cliente registrada en Macotrans recibe una <strong>API key</strong> (formato <code>mk_…</code>), gestionable desde el portal TMS (sección <em>Empresas</em>). Se envía en el encabezado <code>X-API-Key</code> de cada petición al API de integración. La clave delimita el alcance: cada empresa solo ve y opera sus propios pedidos.</p>
+<pre><code>curl -H "X-API-Key: mk_xxxxxxxxxxxxxxxx" \
+     http://localhost:3000/api/integration/v1/me</code></pre>
+    <p>El API pública del portal no requiere credenciales y el API interna es de uso del TMS (en producción quedaría detrás del login de operaciones).</p>
+
+    <h2 id="integracion">API de integración (ERP / e-commerce)</h2>
+    <p>El middleware de integración permite que sistemas externos creen pedidos que entran directo a la <strong>planificación consolidada</strong> de rutas de Macotrans, consulten su estado y reciban webhooks en su propio sistema. Soporta referencia externa (<code>externalRef</code>) para conciliar con el número de documento de tu ERP o el número de orden de tu e-commerce.</p>
+    <div class="endpoint"><span class="method get">GET</span>/api/integration/v1/me <span class="muted">— identifica la cuenta de la API key</span></div>
+    <div class="endpoint"><span class="method post">POST</span>/api/integration/v1/quote <span class="muted">— cotiza un flete</span></div>
+    <div class="endpoint"><span class="method post">POST</span>/api/integration/v1/orders <span class="muted">— crea pedidos (objeto o arreglo para lote)</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/api/integration/v1/orders <span class="muted">— lista los pedidos de tu empresa</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/api/integration/v1/orders/{id|code|externalRef}</div>
+    <div class="endpoint"><span class="method del">DELETE</span>/api/integration/v1/orders/{id} <span class="muted">— anula (solo pendientes)</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/api/integration/v1/tracking/{trackingCode|externalRef}</div>
+    <div class="endpoint"><span class="method put">PUT</span>/api/integration/v1/webhook <span class="muted">— configura la URL de notificaciones</span></div>
+<pre><code>POST /api/integration/v1/orders
+X-API-Key: mk_xxxxxxxxxxxxxxxx
+{
+  "externalRef": "FACT-33421",        // nº de factura / orden en tu sistema
+  "type": "entrega",
+  "customer": "Cliente Final Ltda.",
+  "address": "Av. Apoquindo 4501, Las Condes",
+  "commune": "Las Condes",
+  "lat": -33.4172, "lng": -70.6015,
+  "weightKg": 180, "volumeM3": 1.2,
+  "timeWindow": { "start": "09:00", "end": "13:00" }
+}
+
+→ 201
+{ "data": { "id": "ORD-1042", "code": "PED-1043",
+            "trackingCode": "MAC-7K2Q9D", "status": "pendiente",
+            "externalRef": "FACT-33421" } }</code></pre>
+    <p>Con <code>PUT /webhook</code> tu sistema recibirá un <code>POST</code> JSON (encabezado <code>X-Macotrans-Event</code>) en cada <code>order.status_changed</code> de tus pedidos, incluyendo la prueba de entrega — útil para gatillar la facturación electrónica al confirmar la entrega.</p>
+
+    <h2 id="publica">API pública (portal de fletes)</h2>
+    <p>Alimenta el <a href="/portal">portal público</a> responsive de contratación. Sin credenciales; expone solo información no sensible.</p>
+    <div class="endpoint"><span class="method post">POST</span>/api/public/v1/quote <span class="muted">— cotización instantánea</span></div>
+    <div class="endpoint"><span class="method post">POST</span>/api/public/v1/freights <span class="muted">— contrata el flete y devuelve el código de seguimiento</span></div>
+    <div class="endpoint"><span class="method get">GET</span>/api/public/v1/tracking/{trackingCode}</div>
+<pre><code>POST /api/public/v1/quote
+{
+  "origin":      { "lat": -33.4489, "lng": -70.6693 },
+  "destination": { "lat": -33.4172, "lng": -70.6015 },
+  "weightKg": 120, "volumeM3": 0.8, "service": "express"
+}
+
+→ 200
+{ "data": { "distanceKm": 9.5, "priceClp": 30000, "currency": "CLP",
+            "breakdown": { "base": 12000, "distancia": 9025, "peso": 7200,
+                           "volumen": 6000, "servicio": "express",
+                           "multiplicador": 1.35 } } }</code></pre>
+    <p class="muted">El resto de esta página documenta el API interna del TMS (<code>/api/v1</code>).</p>
 
     <h2 id="orders">Pedidos</h2>
     <p>Un pedido representa una <em>entrega</em> o una <em>recolección</em> georreferenciada, con peso, volumen y ventana horaria.</p>
@@ -169,7 +228,7 @@
 }</code></pre>
 
     <h2 id="webhooks">Webhooks</h2>
-    <p>Suscribe una URL para recibir un <code>POST</code> JSON cuando ocurra un evento. El encabezado <code>X-RutaFleet-Event</code> indica el tipo.</p>
+    <p>Suscribe una URL para recibir un <code>POST</code> JSON cuando ocurra un evento. El encabezado <code>X-Macotrans-Event</code> indica el tipo.</p>
     <div class="endpoint"><span class="method get">GET</span>/webhooks</div>
     <div class="endpoint"><span class="method post">POST</span>/webhooks</div>
     <div class="endpoint"><span class="method del">DELETE</span>/webhooks/{id}</div>
@@ -188,7 +247,7 @@
     <div class="endpoint"><span class="method get">GET</span>/events <span class="muted">— feed de actividad reciente</span></div>
     <div class="endpoint"><span class="method get">GET</span>/company <span class="muted">— datos de la empresa y su centro de distribución</span></div>
     <div class="endpoint"><span class="method post">POST</span>/reset <span class="muted">— restaura los datos de demostración</span></div>
-    <p class="muted" style="margin-top:26px">RutaFleet TMS · réplica funcional educativa de un TMS de última milla. No afiliada a ningún proveedor comercial.</p>
+    <p class="muted" style="margin-top:26px">Macotrans TMS · plataforma de demostración de un TMS de última milla. No afiliada a ningún proveedor comercial.</p>
   </main>
 </body>
 </html>

@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-const { db, nextId, init, save, reset, logEvent } = require('./src/store');
+const { db, nextId, init, save, reset, logEvent, logIntegration, newApiKey, newTrackingCode } = require('./src/store');
 const { optimize } = require('./src/optimizer');
+const { quote } = require('./src/pricing');
 const simulator = require('./src/simulator');
 const { dispatchWebhooks } = require('./src/webhooks');
 
@@ -63,6 +64,64 @@ function badRequest(res, msg) {
   sendJSON(res, 400, { error: msg });
 }
 
+// Crea un pedido a partir de datos externos (TMS, portal público o API
+// de integración). Lanza Error con mensaje legible si los datos no sirven.
+function createOrder(it, { companyId = null, source = 'tms' } = {}) {
+  if (typeof it.lat !== 'number' || typeof it.lng !== 'number') {
+    throw new Error('Cada pedido requiere lat y lng numéricos');
+  }
+  const order = {
+    id: nextId('ORD'),
+    companyId,
+    source,
+    trackingCode: newTrackingCode(),
+    price: typeof it.price === 'number' ? it.price : null,
+    contact: it.contact || null,
+    externalRef: it.externalRef || null,
+    code: it.code || nextId('PED'),
+    type: it.type === 'recoleccion' ? 'recoleccion' : 'entrega',
+    address: it.address || '',
+    commune: it.commune || '',
+    lat: it.lat,
+    lng: it.lng,
+    weightKg: Number(it.weightKg) || 0,
+    volumeM3: Number(it.volumeM3) || 0,
+    timeWindow: it.timeWindow || { start: '09:00', end: '18:00' },
+    customer: it.customer || '',
+    date: it.date || new Date().toISOString().slice(0, 10),
+    status: 'pendiente',
+    priority: it.priority || 'normal',
+    notes: it.notes || '',
+    pod: null,
+    createdAt: new Date().toISOString(),
+  };
+  db.orders.push(order);
+  return order;
+}
+
+// Vista pública de un pedido: solo lo que un cliente final debe ver
+function publicTracking(order) {
+  const route = order.routeId ? db.routes.find((r) => r.id === order.routeId) : null;
+  const stop = route ? route.stops.find((s) => s.orderId === order.id) : null;
+  const position =
+    route && route.status === 'en_curso'
+      ? simulator.positions().find((p) => p.routeId === route.id) || null
+      : null;
+  return {
+    trackingCode: order.trackingCode,
+    status: order.status,
+    type: order.type,
+    date: order.date,
+    commune: order.commune,
+    eta: stop ? stop.eta : null,
+    createdAt: order.createdAt,
+    vehiclePosition: position ? { lat: position.lat, lng: position.lng, at: position.at } : null,
+    pod: order.pod
+      ? { at: order.pod.at, receiver: order.pod.receiver, method: order.pod.method }
+      : null,
+  };
+}
+
 // ------------------------------------------------------------ KPIs
 function computeKpis() {
   const orders = db.orders;
@@ -114,31 +173,12 @@ async function handleApi(req, res, pathname, query) {
       const body = await readBody(req);
       const items = Array.isArray(body) ? body : [body];
       const created = [];
-      for (const it of items) {
-        if (typeof it.lat !== 'number' || typeof it.lng !== 'number') {
-          return badRequest(res, 'Cada pedido requiere lat y lng numéricos');
+      try {
+        for (const it of items) {
+          created.push(createOrder(it, { companyId: it.companyId || null, source: 'tms' }));
         }
-        const order = {
-          id: nextId('ORD'),
-          code: it.code || nextId('PED'),
-          type: it.type === 'recoleccion' ? 'recoleccion' : 'entrega',
-          address: it.address || '',
-          commune: it.commune || '',
-          lat: it.lat,
-          lng: it.lng,
-          weightKg: Number(it.weightKg) || 0,
-          volumeM3: Number(it.volumeM3) || 0,
-          timeWindow: it.timeWindow || { start: '09:00', end: '18:00' },
-          customer: it.customer || '',
-          date: it.date || new Date().toISOString().slice(0, 10),
-          status: 'pendiente',
-          priority: it.priority || 'normal',
-          notes: it.notes || '',
-          pod: null,
-          createdAt: new Date().toISOString(),
-        };
-        db.orders.push(order);
-        created.push(order);
+      } catch (err) {
+        return badRequest(res, err.message);
       }
       save();
       logEvent('order.created', { count: created.length });
@@ -179,7 +219,11 @@ async function handleApi(req, res, pathname, query) {
           ? 'recolectado'
           : 'entregado';
       save();
-      dispatchWebhooks('order.status_changed', { orderId: order.id, status: order.status, pod: order.pod });
+      dispatchWebhooks(
+        'order.status_changed',
+        { orderId: order.id, trackingCode: order.trackingCode, status: order.status, pod: order.pod },
+        { companyId: order.companyId }
+      );
       return sendJSON(res, 200, { data: order });
     }
   }
@@ -399,6 +443,66 @@ async function handleApi(req, res, pathname, query) {
     }
   }
 
+  // ---- empresas cliente (tenants) ---------------------------------
+  if (resource === 'companies') {
+    if (method === 'GET' && !id) return sendJSON(res, 200, { data: db.companies, count: db.companies.length });
+    if (method === 'GET' && id) {
+      const c = db.companies.find((x) => x.id === id);
+      return c ? sendJSON(res, 200, { data: c }) : notFound(res);
+    }
+    if (method === 'POST' && !id) {
+      const body = await readBody(req);
+      if (!body.name) return badRequest(res, 'El nombre es obligatorio');
+      const company = {
+        id: nextId('CMP'),
+        name: body.name,
+        type: ['erp', 'ecommerce', 'portal'].includes(body.type) ? body.type : 'erp',
+        contactEmail: body.contactEmail || '',
+        apiKey: newApiKey(),
+        webhookUrl: body.webhookUrl || '',
+        active: true,
+        createdAt: new Date().toISOString(),
+      };
+      db.companies.push(company);
+      save();
+      logEvent('company.created', { companyId: company.id, name: company.name });
+      return sendJSON(res, 201, { data: company });
+    }
+    if (method === 'PUT' && id && action === 'regenerate-key') {
+      const c = db.companies.find((x) => x.id === id);
+      if (!c) return notFound(res);
+      c.apiKey = newApiKey();
+      save();
+      return sendJSON(res, 200, { data: c });
+    }
+    if (method === 'PUT' && id) {
+      const c = db.companies.find((x) => x.id === id);
+      if (!c) return notFound(res);
+      const body = await readBody(req);
+      for (const k of ['name', 'type', 'contactEmail', 'webhookUrl', 'active']) {
+        if (k in body) c[k] = body[k];
+      }
+      save();
+      return sendJSON(res, 200, { data: c });
+    }
+    if (method === 'DELETE' && id) {
+      const idx = db.companies.findIndex((x) => x.id === id);
+      if (idx === -1) return notFound(res);
+      if (db.orders.some((o) => o.companyId === id && !['entregado', 'recolectado', 'no_entregado'].includes(o.status))) {
+        return badRequest(res, 'La empresa tiene pedidos activos; complétalos o elimínalos primero');
+      }
+      const [removed] = db.companies.splice(idx, 1);
+      save();
+      return sendJSON(res, 200, { data: removed });
+    }
+  }
+
+  if (resource === 'integration-logs' && method === 'GET') {
+    let list = db.integrationLogs;
+    if (query.get('companyId')) list = list.filter((l) => l.companyId === query.get('companyId'));
+    return sendJSON(res, 200, { data: list.slice(0, 100) });
+  }
+
   // ---- empresa / configuración ------------------------------------
   if (resource === 'company' && method === 'GET') {
     return sendJSON(res, 200, { data: db.company });
@@ -411,9 +515,232 @@ async function handleApi(req, res, pathname, query) {
   return notFound(res, `Ruta de API no encontrada: ${method} ${pathname}`);
 }
 
+// ================================================================
+// API PÚBLICA (/api/public/v1) — sin autenticación, para el portal web
+// de contratación de fletes y el seguimiento por código.
+// ================================================================
+async function handlePublicApi(req, res, pathname) {
+  const parts = pathname.split('/').filter(Boolean); // ['api','public','v1',resource,arg?]
+  const resource = parts[3];
+  const arg = parts[4];
+  const method = req.method;
+
+  // POST /api/public/v1/quote — cotiza un flete
+  if (resource === 'quote' && method === 'POST') {
+    const body = await readBody(req);
+    try {
+      return sendJSON(res, 200, { data: quote(body) });
+    } catch (err) {
+      return badRequest(res, err.message);
+    }
+  }
+
+  // POST /api/public/v1/freights — contrata un flete desde el portal
+  if (resource === 'freights' && method === 'POST') {
+    const body = await readBody(req);
+    if (!body.contact || !body.contact.name || !body.contact.phone) {
+      return badRequest(res, 'Se requiere contacto con nombre y teléfono');
+    }
+    if (!body.destination) return badRequest(res, 'Falta el destino del flete');
+    let quoted;
+    try {
+      quoted = quote({
+        origin: body.origin || db.company.depot,
+        destination: body.destination,
+        weightKg: body.weightKg,
+        volumeM3: body.volumeM3,
+        service: body.service,
+      });
+    } catch (err) {
+      return badRequest(res, err.message);
+    }
+    const portalCompany = db.companies.find((c) => c.type === 'portal');
+    let order;
+    try {
+      order = createOrder(
+        {
+          type: body.type,
+          customer: body.contact.name,
+          contact: {
+            name: body.contact.name,
+            phone: body.contact.phone,
+            email: body.contact.email || '',
+          },
+          address: body.destination.address || '',
+          commune: body.destination.commune || '',
+          lat: body.destination.lat,
+          lng: body.destination.lng,
+          weightKg: body.weightKg,
+          volumeM3: body.volumeM3,
+          date: body.date,
+          notes: body.notes || '',
+          price: quoted.priceClp,
+        },
+        { companyId: portalCompany ? portalCompany.id : null, source: 'portal' }
+      );
+    } catch (err) {
+      return badRequest(res, err.message);
+    }
+    save();
+    logEvent('freight.contracted', { orderId: order.id, trackingCode: order.trackingCode, priceClp: quoted.priceClp });
+    dispatchWebhooks('order.created', { orders: [order.id], source: 'portal' });
+    return sendJSON(res, 201, {
+      data: {
+        trackingCode: order.trackingCode,
+        status: order.status,
+        priceClp: quoted.priceClp,
+        currency: 'CLP',
+        distanceKm: quoted.distanceKm,
+        date: order.date,
+      },
+    });
+  }
+
+  // GET /api/public/v1/tracking/{code} — seguimiento público
+  if (resource === 'tracking' && method === 'GET' && arg) {
+    const order = db.orders.find((o) => o.trackingCode === arg.toUpperCase());
+    if (!order) return notFound(res, 'Código de seguimiento no encontrado');
+    return sendJSON(res, 200, { data: publicTracking(order) });
+  }
+
+  return notFound(res, `Ruta de API pública no encontrada: ${method} ${pathname}`);
+}
+
+// ================================================================
+// API DE INTEGRACIÓN (/api/integration/v1) — para ERPs, sistemas de
+// facturación electrónica y e-commerce. Autenticación por API key
+// (encabezado X-API-Key) y alcance limitado a los datos de la empresa.
+// ================================================================
+async function handleIntegrationApi(req, res, pathname) {
+  const parts = pathname.split('/').filter(Boolean); // ['api','integration','v1',resource,arg?]
+  const resource = parts[3];
+  const arg = parts[4];
+  const method = req.method;
+
+  const apiKey = req.headers['x-api-key'];
+  const company = apiKey && db.companies.find((c) => c.apiKey === apiKey && c.active !== false);
+  if (!company) {
+    logIntegration(null, method, pathname, 401);
+    return sendJSON(res, 401, { error: 'API key inválida o ausente (encabezado X-API-Key)' });
+  }
+  const log = (status) => logIntegration(company.id, method, pathname, status);
+
+  // GET /me — datos de la cuenta de integración
+  if (resource === 'me' && method === 'GET') {
+    log(200);
+    return sendJSON(res, 200, {
+      data: {
+        companyId: company.id,
+        name: company.name,
+        type: company.type,
+        webhookUrl: company.webhookUrl || null,
+      },
+    });
+  }
+
+  // POST /quote — cotización (mismo motor que el portal)
+  if (resource === 'quote' && method === 'POST') {
+    const body = await readBody(req);
+    try {
+      const q = quote({ ...body, origin: body.origin || db.company.depot });
+      log(200);
+      return sendJSON(res, 200, { data: q });
+    } catch (err) {
+      log(400);
+      return badRequest(res, err.message);
+    }
+  }
+
+  // POST /orders — crea pedidos (uno o lote); GET /orders — lista propios
+  if (resource === 'orders') {
+    if (method === 'POST' && !arg) {
+      const body = await readBody(req);
+      const items = Array.isArray(body) ? body : [body];
+      const created = [];
+      try {
+        for (const it of items) {
+          created.push(createOrder(it, { companyId: company.id, source: 'api-' + company.type }));
+        }
+      } catch (err) {
+        log(400);
+        return badRequest(res, err.message);
+      }
+      save();
+      log(201);
+      logEvent('order.created', { count: created.length, companyId: company.id });
+      dispatchWebhooks('order.created', { orders: created.map((o) => o.id), companyId: company.id });
+      const view = created.map((o) => ({
+        id: o.id,
+        code: o.code,
+        trackingCode: o.trackingCode,
+        status: o.status,
+        externalRef: o.externalRef,
+      }));
+      return sendJSON(res, 201, { data: Array.isArray(body) ? view : view[0] });
+    }
+    if (method === 'GET' && !arg) {
+      const list = db.orders.filter((o) => o.companyId === company.id);
+      log(200);
+      return sendJSON(res, 200, { data: list, count: list.length });
+    }
+    if (method === 'GET' && arg) {
+      const order = db.orders.find(
+        (o) => o.companyId === company.id && (o.id === arg || o.code === arg || o.externalRef === arg)
+      );
+      if (!order) {
+        log(404);
+        return notFound(res);
+      }
+      log(200);
+      return sendJSON(res, 200, { data: order });
+    }
+    if (method === 'DELETE' && arg) {
+      const idx = db.orders.findIndex((o) => o.companyId === company.id && (o.id === arg || o.code === arg));
+      if (idx === -1) {
+        log(404);
+        return notFound(res);
+      }
+      if (db.orders[idx].status !== 'pendiente') {
+        log(409);
+        return sendJSON(res, 409, { error: 'Solo se pueden anular pedidos en estado pendiente' });
+      }
+      const [removed] = db.orders.splice(idx, 1);
+      save();
+      log(200);
+      return sendJSON(res, 200, { data: { id: removed.id, status: 'anulado' } });
+    }
+  }
+
+  // GET /tracking/{code} — seguimiento de un pedido propio
+  if (resource === 'tracking' && method === 'GET' && arg) {
+    const order = db.orders.find(
+      (o) => o.companyId === company.id && (o.trackingCode === arg.toUpperCase() || o.id === arg || o.externalRef === arg)
+    );
+    if (!order) {
+      log(404);
+      return notFound(res, 'Pedido no encontrado para esta empresa');
+    }
+    log(200);
+    return sendJSON(res, 200, { data: publicTracking(order) });
+  }
+
+  // PUT /webhook — configura la URL de notificaciones de la empresa
+  if (resource === 'webhook' && method === 'PUT') {
+    const body = await readBody(req);
+    company.webhookUrl = body.url || '';
+    save();
+    log(200);
+    return sendJSON(res, 200, { data: { webhookUrl: company.webhookUrl } });
+  }
+
+  log(404);
+  return notFound(res, `Ruta de API de integración no encontrada: ${method} ${pathname}`);
+}
+
 function serveStatic(res, pathname) {
   let file = pathname === '/' ? '/index.html' : pathname;
   if (file === '/docs') file = '/docs.html';
+  if (file === '/portal' || file === '/portal/') file = '/portal.html';
   const full = path.join(PUBLIC_DIR, path.normalize(file));
   if (!full.startsWith(PUBLIC_DIR)) return notFound(res);
   fs.readFile(full, (err, data) => {
@@ -444,7 +771,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   try {
-    if (pathname.startsWith('/api/')) {
+    if (pathname.startsWith('/api/public/')) {
+      await handlePublicApi(req, res, pathname);
+    } else if (pathname.startsWith('/api/integration/')) {
+      await handleIntegrationApi(req, res, pathname);
+    } else if (pathname.startsWith('/api/')) {
       await handleApi(req, res, pathname, url.searchParams);
     } else {
       serveStatic(res, pathname);
@@ -458,10 +789,13 @@ if (require.main === module) {
   init();
   simulator.start();
   server.listen(PORT, () => {
-    console.log(`RutaFleet TMS escuchando en http://localhost:${PORT}`);
-    console.log(`  · Aplicación web:  http://localhost:${PORT}/`);
-    console.log(`  · Documentación:   http://localhost:${PORT}/docs`);
-    console.log(`  · API REST:        http://localhost:${PORT}/api/v1/`);
+    console.log(`Macotrans TMS escuchando en http://localhost:${PORT}`);
+    console.log(`  · Portal TMS (operaciones):   http://localhost:${PORT}/`);
+    console.log(`  · Portal público de fletes:   http://localhost:${PORT}/portal`);
+    console.log(`  · Documentación de APIs:      http://localhost:${PORT}/docs`);
+    console.log(`  · API interna:                http://localhost:${PORT}/api/v1/`);
+    console.log(`  · API pública (portal):       http://localhost:${PORT}/api/public/v1/`);
+    console.log(`  · API integración (X-API-Key): http://localhost:${PORT}/api/integration/v1/`);
   });
 }
 
