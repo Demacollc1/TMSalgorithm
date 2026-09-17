@@ -7,7 +7,7 @@ const { haversineKm, centroid, interpolate } = require('../src/geo');
 const { quote, TARIFF } = require('../src/pricing');
 const { newTrackingCode, newApiKey } = require('../src/store');
 const { classifyBulto, buildLoadingPlan, loadingSummary } = require('../src/loading');
-const { mapPlan } = require('../src/importer');
+const { mapPlan, extractContainerId } = require('../src/importer');
 const { claveAcceso, mod11 } = require('../src/billing');
 const fs = require('fs');
 const path = require('path');
@@ -347,8 +347,10 @@ test('mapPlan: importa el plan de ejemplo del ERP', () => {
   assert.strictEqual(o.bultos.length, 29);
   assert.ok(o.lat < -2 && o.lat > -3, 'lat de Guayaquil');
   assert.ok(o.weightKg > 0);
-  // el alt_code del ERP es el código de barras del bulto
-  assert.ok(o.bultos.every((b) => b.barcode && b.barcode.startsWith('ST-')));
+  // el código de barras del bulto es el CONTAINER ID (segmento central
+  // del code), no el alt_code
+  assert.ok(o.bultos.every((b) => b.barcode && !b.barcode.startsWith('ST-')));
+  assert.ok(o.bultos.every((b) => b.altCode && b.altCode.startsWith('ST-')));
   // los tubos del plan van a parrilla
   const tubos = o.bultos.filter((b) => /TUBO/i.test(b.description));
   assert.ok(tubos.length >= 1 && tubos.every((b) => b.zone === 'parrilla'));
@@ -360,6 +362,95 @@ test('mapPlan: importa el plan de ejemplo del ERP', () => {
 test('mapPlan: rechaza formatos inválidos', () => {
   assert.throws(() => mapPlan({}));
   assert.throws(() => mapPlan(null));
+});
+
+test('extractContainerId: obtiene el Id. Contenedor del campo code', () => {
+  assert.strictEqual(
+    extractContainerId("ST-26007565-M0'144553'6.01'1-B87"),
+    "M0'144553'6.01'1"
+  );
+  assert.strictEqual(
+    extractContainerId("SO-26040646-B87'#A'111838'TU3'1-B87"),
+    "B87'#A'111838'TU3'1"
+  );
+  assert.strictEqual(extractContainerId(null, 'ALT-1'), 'ALT-1');
+});
+
+console.log('\nRemolques plegables:');
+
+const DEPOT2 = { lat: -2.15, lng: -79.88 };
+const YARDS = [
+  { id: 'y1', name: 'Acopio Norte', lat: -2.10, lng: -79.90 },
+  { id: 'y2', name: 'Acopio Sur', lat: -2.25, lng: -79.89 },
+];
+
+function volOrder(id, lat, lng, weightKg, volumeM3) {
+  return { id, lat, lng, weightKg, volumeM3, type: 'entrega', timeWindow: { start: '09:00', end: '18:00' } };
+}
+
+test('remolque: se acopla cuando falta volumen y el camión tiene bola', () => {
+  const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
+  const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
+  // 40 m³ de tubos/tanques livianos: no caben en 20 m³ sin remolque
+  const orders = [
+    volOrder('o1', -2.09, -79.91, 300, 15),
+    volOrder('o2', -2.12, -79.92, 300, 15),
+    volOrder('o3', -2.20, -79.90, 300, 10),
+  ];
+  const sin = optimize({ depot: DEPOT2, orders, vehicles, trailers: [], yards: YARDS, options: {} });
+  assert.ok(sin.unassigned.length > 0, 'sin remolque debe sobrar volumen');
+  const con = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  assert.strictEqual(con.unassigned.length, 0, 'con remolque todo debe caber');
+  const route = con.routes[0];
+  assert.strictEqual(route.trailerId, 't1');
+  // la ruta incluye la parada de soltar y la de retirar el remolque
+  const drop = route.stops.find((s) => s.trailerAction === 'drop');
+  const pickup = route.stops.find((s) => s.trailerAction === 'pickup');
+  assert.ok(drop, 'debe existir parada de soltado en acopio');
+  assert.ok(pickup, 'por defecto se retira al final de la ruta');
+  // el soltado ocurre cuando el remanente ya cabe en el camión solo
+  const orderStops = route.stops.filter((s) => s.orderId);
+  const dropIdx = route.stops.indexOf(drop);
+  let remaining = route.ordersVolumeM3;
+  for (const s of route.stops.slice(0, dropIdx)) if (s.orderId) remaining -= s._volumeM3 || 0;
+  assert.ok(remaining <= vehicles[0].capacityM3 + 1e-9, 'al soltar, lo restante cabe en el camión');
+  assert.ok(orderStops.length === 3);
+});
+
+test('remolque: opción dejar en acopio no agrega parada de retiro', () => {
+  const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
+  const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
+  const orders = [volOrder('o1', -2.09, -79.91, 300, 25), volOrder('o2', -2.20, -79.90, 300, 10)];
+  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: { trailerPickup: 'dejar' } });
+  const route = r.routes[0];
+  assert.ok(route.stops.some((s) => s.trailerAction === 'drop'));
+  assert.ok(!route.stops.some((s) => s.trailerAction === 'pickup'));
+  assert.strictEqual(route.trailerPickupAtEnd, false);
+});
+
+test('remolque: nunca se acopla a un vehículo sin bola', () => {
+  const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: false }];
+  const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
+  const orders = [volOrder('o1', -2.09, -79.91, 300, 25), volOrder('o2', -2.20, -79.90, 300, 10)];
+  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  assert.ok(r.routes.every((x) => !x.trailerId));
+  assert.ok(r.unassigned.length > 0, 'sin bola, el sobrante de volumen queda sin asignar');
+});
+
+test('remolque: la carga volumétrica previa al soltado va en fase 0 (remolque)', () => {
+  const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
+  const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
+  const orders = [
+    { ...volOrder('o1', -2.09, -79.91, 300, 25), bultos: [{ containerId: 'c1', barcode: 'c1', description: 'TANQUE 1000L', weightKg: 300, volumeM3: 25 }] },
+    { ...volOrder('o2', -2.20, -79.90, 100, 5), bultos: [{ containerId: 'c2', barcode: 'c2', description: 'CAJA ACCESORIOS', weightKg: 100, volumeM3: 5 }] },
+  ];
+  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  const route = r.routes[0];
+  const plan = buildLoadingPlan(route, orders);
+  const tanque = plan.find((b) => b.containerId === 'c1');
+  assert.strictEqual(tanque.phase, 0, 'el tanque viaja en el remolque');
+  assert.strictEqual(tanque.zone, 'remolque');
+  assert.strictEqual(plan[0].containerId, 'c1', 'la fase 0 se carga primero');
 });
 
 console.log('\nDatos reales (config driv.in):');

@@ -42,6 +42,8 @@ const db = {
   vehicles: [],
   drivers: [],
   deposits: [], // bodegas / depósitos
+  trailers: [], // remolques plegables (aumentan volumen sin sobrecargar peso)
+  yards: [], // puntos de acopio para estacionar remolques por ciudad
   fleets: [], // agrupaciones de vehículos
   addresses: [], // maestro de direcciones / puntos de entrega
   schemas: [], // esquemas de ruteo (parámetros del optimizador por depósito)
@@ -124,6 +126,21 @@ function seedData() {
         };
         db.company.billing.direccion = data.mainDepot.address;
       }
+      // puntos de acopio: cada bodega sirve para estacionar remolques
+      db.yards = db.deposits.map((d) => ({
+        id: 'YRD-' + d.externalId,
+        name: `Acopio ${d.name}`,
+        city: d.city,
+        lat: d.lat,
+        lng: d.lng,
+        depositId: d.id,
+      }));
+      // remolques plegables de la flota (editables en Flota → Remolques)
+      db.trailers = [
+        { id: 'TRL-1', code: 'RMQ-01', name: 'Remolque plegable 01', capacityKg: 1500, capacityM3: 28, foldable: true, status: 'disponible', locationName: db.company.depot.name, lat: db.company.depot.lat, lng: db.company.depot.lng, attachedToVehicleId: null },
+        { id: 'TRL-2', code: 'RMQ-02', name: 'Remolque plegable 02', capacityKg: 1500, capacityM3: 28, foldable: true, status: 'disponible', locationName: db.company.depot.name, lat: db.company.depot.lat, lng: db.company.depot.lng, attachedToVehicleId: null },
+        { id: 'TRL-3', code: 'RMQ-03', name: 'Remolque tubero 03', capacityKg: 2000, capacityM3: 35, foldable: false, status: 'disponible', locationName: db.company.depot.name, lat: db.company.depot.lat, lng: db.company.depot.lng, attachedToVehicleId: null },
+      ];
       console.log(
         `Datos reales cargados desde config: ${db.vehicles.length} vehículos, ` +
           `${db.drivers.length} tripulantes, ${db.deposits.length} bodegas, ` +

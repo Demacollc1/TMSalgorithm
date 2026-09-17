@@ -151,6 +151,7 @@ function buildStops(origin, sequence, startTimeMin, speedKmh, serviceMin) {
       lat: order.lat,
       lng: order.lng,
       type: order.type,
+      _volumeM3: order.volumeM3 || 0,
       eta,
       status: 'pendiente',
     };
@@ -228,6 +229,8 @@ function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta, 
   return {
     vehicleId: vehicle.id,
     stops,
+    ordersVolumeM3:
+      Math.round(orders.reduce((s, o) => s + (o.volumeM3 || 0), 0) * 100) / 100,
     origin,
     returnToOrigin,
     polyline: points.map((p) => [p.lat, p.lng]),
@@ -276,16 +279,100 @@ function kMeansClusters(orders, k, iterations = 12) {
 }
 
 /**
+ * Acople de remolques plegables.
+ *
+ * Si tras la asignación quedan pedidos sin caber POR VOLUMEN (no por
+ * peso), se acoplan remolques a los vehículos con bola (hasTowHitch),
+ * ampliando su capacidad volumétrica. La ruta resultante incluye una
+ * parada "soltar remolque" en el punto de acopio más cercano una vez
+ * que la mercadería restante ya cabe en el camión solo (el remolque
+ * dificulta la maniobra), y opcionalmente una parada de retiro al
+ * final de la ruta; si no, queda estacionado para otra ruta u otro día.
+ */
+function planTrailerDrop(route, vehicle, trailer, yards, returnToDepot, pickupAtEnd) {
+  const stops = route.stops.filter((s) => s.orderId);
+  if (!stops.length || !yards.length) return route;
+
+  // volumen remanente tras cada parada (los pedidos se descargan en orden)
+  let remaining = route.ordersVolumeM3;
+  let dropAfterIdx = stops.length - 1;
+  for (let i = 0; i < stops.length; i++) {
+    remaining -= stops[i]._volumeM3 || 0;
+    if (remaining <= (vehicle.capacityM3 || 0) + 1e-9) {
+      dropAfterIdx = i;
+      break;
+    }
+  }
+  const anchor = stops[dropAfterIdx];
+  let yard = yards[0];
+  let best = Infinity;
+  for (const y of yards) {
+    const d = haversineKm(anchor, y);
+    if (d < best) {
+      best = d;
+      yard = y;
+    }
+  }
+
+  // inserta la parada de soltado tras la parada ancla
+  const dropStop = {
+    type: 'remolque_drop',
+    trailerAction: 'drop',
+    trailerId: trailer.id,
+    yardId: yard.id,
+    name: `Dejar remolque ${trailer.code} en ${yard.name}`,
+    lat: yard.lat,
+    lng: yard.lng,
+    eta: anchor.eta,
+    status: 'pendiente',
+  };
+  const insertAt = route.stops.findIndex((s) => s === anchor) + 1;
+  route.stops.splice(insertAt, 0, dropStop);
+
+  // y el retiro al final (antes de volver al depósito), si corresponde
+  if (pickupAtEnd) {
+    route.stops.push({
+      type: 'remolque_pickup',
+      trailerAction: 'pickup',
+      trailerId: trailer.id,
+      yardId: yard.id,
+      name: `Retirar remolque ${trailer.code} de ${yard.name}`,
+      lat: yard.lat,
+      lng: yard.lng,
+      eta: route.stops[route.stops.length - 1].eta,
+      status: 'pendiente',
+    });
+  }
+
+  // reconstruye polilínea y distancia con los desvíos al acopio
+  const pts = [route.origin, ...route.stops.map((s) => ({ lat: s.lat, lng: s.lng }))];
+  if (route.returnToOrigin) pts.push(route.origin);
+  route.polyline = pts.map((p) => [p.lat, p.lng]);
+  route.distanceKm = Math.round(routeDistanceKm(pts) * 100) / 100;
+  route.stops.forEach((s, i) => (s.seq = i + 1));
+
+  route.trailerId = trailer.id;
+  route.trailerCode = trailer.code;
+  route.trailerCapacityM3 = trailer.capacityM3;
+  route.trailerDropSeq = insertAt + 1;
+  route.trailerYard = { id: yard.id, name: yard.name };
+  route.trailerPickupAtEnd = !!pickupAtEnd;
+  return route;
+}
+
+/**
  * Punto de entrada del optimizador.
  *
  * @param {Object} params
  * @param {{lat:number,lng:number,name?:string}} params.depot
  * @param {Array} params.orders  pedidos con {id, lat, lng, type, weightKg, volumeM3, timeWindow}
- * @param {Array} params.vehicles vehículos con {id, capacityKg, capacityM3, isNodriza}
- * @param {Object} params.options {useNodriza, startTime, returnToDepot}
+ * @param {Array} params.vehicles vehículos con {id, capacityKg, capacityM3, isNodriza, hasTowHitch}
+ * @param {Array} [params.trailers] remolques disponibles {id, code, capacityKg, capacityM3}
+ * @param {Array} [params.yards] puntos de acopio {id, name, lat, lng}
+ * @param {Object} params.options {useNodriza, startTime, returnToDepot, useTrailers, trailerPickup: 'fin_de_ruta'|'dejar'}
  * @returns {{routes: Array, unassigned: Array, summary: Object}}
  */
-function optimize({ depot, orders, vehicles, options = {} }) {
+function optimize({ depot, orders, vehicles, trailers = [], yards = [], options = {} }) {
   const startHHMM = options.startTime || '08:30';
   const returnToDepot = options.returnToDepot !== false;
   const useNodriza = !!options.useNodriza;
@@ -363,11 +450,61 @@ function optimize({ depot, orders, vehicles, options = {} }) {
   } else {
     // VRP clásico: barrido + NN + 2-opt por vehículo
     const fleet = satellites.length ? satellites : vehicles;
-    const { bags, unassigned: rest } = sweepAssign(depot, orders, fleet);
+    let { bags, unassigned: rest } = sweepAssign(depot, orders, fleet);
+
+    // Si quedaron pedidos fuera y hay remolques, intenta acoplar
+    // remolques a los vehículos con bola para ampliar el volumen
+    let trailerByVehicle = {};
+    const freeTrailers = trailers
+      .filter((t) => t.status === 'disponible')
+      .slice()
+      .sort((a, b) => b.capacityM3 - a.capacityM3);
+    if (rest.length && options.useTrailers !== false && freeTrailers.length) {
+      const augmented = fleet.map((v) => ({ ...v }));
+      for (const v of augmented) {
+        if (!freeTrailers.length) break;
+        if (v.hasTowHitch) {
+          const t = freeTrailers.shift();
+          trailerByVehicle[v.id] = t;
+          v.capacityM3 = (v.capacityM3 || 0) + t.capacityM3;
+          v.capacityKg = (v.capacityKg || 0) + t.capacityKg;
+        }
+      }
+      if (Object.keys(trailerByVehicle).length) {
+        const retry = sweepAssign(depot, orders, augmented);
+        if (retry.unassigned.length < rest.length) {
+          bags = retry.bags;
+          rest = retry.unassigned;
+          // libera los remolques que al final no hicieron falta
+          bags.forEach((bag, i) => {
+            const v = fleet[i];
+            const t = trailerByVehicle[v.id];
+            if (!t) return;
+            const vol = bag.reduce((s, o) => s + (o.volumeM3 || 0), 0);
+            const kg = bag.reduce((s, o) => s + (o.weightKg || 0), 0);
+            if (vol <= (v.capacityM3 || 0) && kg <= (v.capacityKg || 0)) {
+              delete trailerByVehicle[v.id];
+            }
+          });
+        } else {
+          trailerByVehicle = {};
+        }
+      }
+    }
+
     unassigned = rest;
     bags.forEach((bag, i) => {
+      const vehicle = fleet[i];
+      const trailer = trailerByVehicle[vehicle.id];
+      const effective = trailer
+        ? {
+            ...vehicle,
+            capacityKg: (vehicle.capacityKg || 0) + trailer.capacityKg,
+            capacityM3: (vehicle.capacityM3 || 0) + trailer.capacityM3,
+          }
+        : vehicle;
       const route = buildRoute({
-        vehicle: fleet[i],
+        vehicle: effective,
         orders: bag,
         origin: depot,
         returnToOrigin: returnToDepot,
@@ -376,7 +513,18 @@ function optimize({ depot, orders, vehicles, options = {} }) {
         speedKmh,
         serviceMin,
       });
-      if (route) routes.push(route);
+      if (!route) return;
+      if (trailer) {
+        planTrailerDrop(
+          route,
+          vehicle,
+          trailer,
+          yards,
+          returnToDepot,
+          options.trailerPickup !== 'dejar'
+        );
+      }
+      routes.push(route);
     });
   }
 

@@ -79,6 +79,35 @@ function completeStop(route, stop) {
       routeId: route.id,
       transferPointId: stop.transferPointId,
     });
+  } else if (stop.trailerAction) {
+    // maniobra de remolque en el punto de acopio
+    const trailer = db.trailers.find((t) => t.id === stop.trailerId);
+    const yard = db.yards.find((y) => y.id === stop.yardId);
+    if (trailer) {
+      if (stop.trailerAction === 'drop') {
+        trailer.status = 'estacionado';
+        trailer.attachedToVehicleId = null;
+        if (yard) {
+          trailer.locationName = yard.name;
+          trailer.lat = yard.lat;
+          trailer.lng = yard.lng;
+        }
+      } else {
+        trailer.status = 'acoplado';
+        trailer.attachedToVehicleId = route.vehicleId;
+      }
+      logEvent('route.remolque', {
+        routeId: route.id,
+        trailerId: trailer.id,
+        action: stop.trailerAction,
+        yard: yard ? yard.name : null,
+      });
+      dispatchWebhooks('route.trailer_' + stop.trailerAction, {
+        routeId: route.id,
+        trailerId: trailer.id,
+        yardId: stop.yardId,
+      });
+    }
   }
 }
 
@@ -87,6 +116,18 @@ function completeRoute(route) {
   route.completedAt = new Date().toISOString();
   const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
   if (vehicle) vehicle.status = 'disponible';
+  // si el remolque volvió acoplado, queda disponible en el depósito;
+  // si quedó estacionado en un acopio, conserva esa ubicación
+  if (route.trailerId) {
+    const trailer = db.trailers.find((t) => t.id === route.trailerId);
+    if (trailer && trailer.status === 'acoplado') {
+      trailer.status = 'disponible';
+      trailer.attachedToVehicleId = null;
+      trailer.locationName = db.company.depot.name;
+      trailer.lat = db.company.depot.lat;
+      trailer.lng = db.company.depot.lng;
+    }
+  }
   stopRoute(route.id);
   logEvent('route.completada', { routeId: route.id, vehicleId: route.vehicleId });
   dispatchWebhooks('route.completed', { routeId: route.id, vehicleId: route.vehicleId });

@@ -20,6 +20,7 @@ const HEAVY_WORDS = /CEMENTO|EMPASTE|MORTERO|BONDEX|SIKATOP|SIKA TOP|SIKACERAM|S
 const TUBE_WORDS = /TUBO|PERFIL|VARILLA|CA[ÑN]ER[IÍ]A|RIEL/i;
 
 const ZONES = {
+  remolque: 'Remolque (carga volumétrica, se entrega antes de soltarlo)',
   'delantera-central': 'Delantera central (piso del cajón)',
   parrilla: 'Parrilla / parte superior',
   cajon: 'Cajón (por orden de entrega)',
@@ -82,6 +83,8 @@ function buildLoadingPlan(route, orders) {
         customer: order.customer,
         containerId: b.containerId,
         barcode: b.barcode || b.containerId,
+        altCode: b.altCode || null,
+        sourceCode: b.sourceCode || null,
         description: b.description || '',
         weightKg: Math.round((b.weightKg || 0) * 100) / 100,
         volumeM3: Math.round((b.volumeM3 || 0) * 10000) / 10000,
@@ -92,6 +95,21 @@ function buildLoadingPlan(route, orders) {
     }
   }
 
+  // Fase 0: si la ruta lleva remolque, la carga volumétrica de las
+  // paradas previas al punto de soltado viaja en el remolque (debe
+  // quedar vacío antes de dejarlo en el acopio)
+  if (route.trailerId && route.trailerDropSeq) {
+    for (const e of entries) {
+      if (e.cargoType === 'volumetrica' && e.stopSeq < route.trailerDropSeq) {
+        e.zone = 'remolque';
+        e.zoneLabel = ZONES.remolque;
+      }
+    }
+  }
+
+  const inTrailer = entries
+    .filter((e) => e.zone === 'remolque')
+    .sort((a, b) => b.stopSeq - a.stopSeq || b.weightKg - a.weightKg);
   // Fase 1: volumétrica pesada (delantera-central), de más a menos pesada
   const heavy = entries
     .filter((e) => e.zone === 'delantera-central')
@@ -105,10 +123,10 @@ function buildLoadingPlan(route, orders) {
     .filter((e) => e.zone === 'cajon')
     .sort((a, b) => b.stopSeq - a.stopSeq || b.weightKg - a.weightKg);
 
-  const ordered = [...heavy, ...tubes, ...parcels];
+  const ordered = [...inTrailer, ...heavy, ...tubes, ...parcels];
   return ordered.map((e, i) => ({
     seq: i + 1,
-    phase: e.zone === 'delantera-central' ? 1 : e.zone === 'parrilla' ? 2 : 3,
+    phase: e.zone === 'remolque' ? 0 : e.zone === 'delantera-central' ? 1 : e.zone === 'parrilla' ? 2 : 3,
     ...e,
     loaded: false,
     loadedAt: null,
@@ -130,7 +148,7 @@ function loadingSummary(plan) {
     complete: total > 0 && loaded === total,
     weightKg: Math.round(plan.reduce((s, b) => s + b.weightKg, 0) * 10) / 10,
     volumeM3: Math.round(plan.reduce((s, b) => s + b.volumeM3, 0) * 100) / 100,
-    byPhase: [1, 2, 3].map((phase) => ({
+    byPhase: [0, 1, 2, 3].map((phase) => ({
       phase,
       total: plan.filter((b) => b.phase === phase).length,
       loaded: plan.filter((b) => b.phase === phase && b.loaded).length,

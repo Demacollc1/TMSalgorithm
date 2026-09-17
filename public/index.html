@@ -113,6 +113,13 @@
             </table>
           </div>
           <div class="card table-card" style="margin-top:16px">
+            <h3>Remolques <button class="btn-link" id="btn-new-trailer">+ Agregar</button></h3>
+            <table class="table" id="trailers-table">
+              <thead><tr><th>Código</th><th>Nombre</th><th>Cap. kg</th><th>Cap. m³</th><th>Estado</th><th>Ubicación</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card table-card" style="margin-top:16px">
             <h3>Flotas</h3>
             <table class="table" id="fleets-table">
               <thead><tr><th>Nombre</th><th>Vehículos</th><th>Cap. kg</th><th>Cap. m³</th></tr></thead>
@@ -175,6 +182,17 @@
           <label class="check">
             <input type="checkbox" id="opt-nodriza" />
             <span>Usar <strong>madre nodriza</strong> (transbordo a vehículos satélite)</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-trailers" checked />
+            <span>Acoplar <strong>remolques plegables</strong> si falta volumen (solo camiones con bola)</span>
+          </label>
+          <label class="field">
+            <span>Remolque al terminar la zona</span>
+            <select id="opt-trailer-pickup" class="input" style="width:100%">
+              <option value="fin_de_ruta">Retirarlo al finalizar la ruta</option>
+              <option value="dejar">Dejarlo estacionado en el acopio (otra ruta lo retira)</option>
+            </select>
           </label>
           <div class="field">
             <span>Vehículos a considerar</span>

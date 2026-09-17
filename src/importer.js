@@ -21,6 +21,21 @@ function toNumber(v) {
 }
 
 /**
+ * El CONTAINER ID es el identificador físico del bulto (el que aparece
+ * como "Id. Contenedor" en la guía y en la etiqueta de código de
+ * barras). Se extrae del campo `code` quitando el prefijo de documento
+ * (p. ej. "SO-26040646-") y el sufijo de ruta (p. ej. "-B87"):
+ *   "ST-26007565-M0'144553'6.01'1-B87" → "M0'144553'6.01'1"
+ */
+function extractContainerId(code, fallback) {
+  if (!code) return fallback || null;
+  let s = String(code).trim();
+  s = s.replace(/^[A-Z]{2,3}-\d+-/, '');
+  s = s.replace(/-B\d+$/, '');
+  return s || fallback || String(code);
+}
+
+/**
  * Convierte el plan externo en pedidos listos para insertar.
  * No toca la base: devuelve los pedidos mapeados y advertencias.
  */
@@ -52,9 +67,11 @@ function mapPlan(plan) {
       }));
       const weightKg = items.reduce((s, it) => s + it.weightKg, 0);
       const volumeM3 = items.reduce((s, it) => s + it.volumeCm3, 0) / 1e6;
+      const containerId = extractContainerId(o.code, o.alt_code) || `BULTO-${ci + 1}-${bi + 1}`;
       const bulto = {
-        containerId: o.alt_code || o.code || `BULTO-${ci + 1}-${bi + 1}`,
-        barcode: o.alt_code || o.code || `BULTO-${ci + 1}-${bi + 1}`,
+        containerId,
+        barcode: containerId,
+        altCode: o.alt_code || null,
         sourceCode: o.code || null,
         description:
           items.length === 1
@@ -100,4 +117,4 @@ function mapPlan(plan) {
   return { orders, warnings };
 }
 
-module.exports = { mapPlan };
+module.exports = { mapPlan, extractContainerId };

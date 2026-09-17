@@ -360,7 +360,14 @@ async function handleApi(req, res, pathname, query) {
       depot = { name: dep.name, address: dep.address, lat: dep.lat, lng: dep.lng };
     }
 
-    const result = optimize({ depot, orders, vehicles, options });
+    const result = optimize({
+      depot,
+      orders,
+      vehicles,
+      trailers: db.trailers,
+      yards: db.yards,
+      options,
+    });
 
     // materializa las rutas
     // las rutas nacen como PROPUESTA del planificador; el usuario las aprueba
@@ -385,6 +392,14 @@ async function handleApi(req, res, pathname, query) {
         if (order) {
           order.status = 'asignado';
           order.routeId = route.id;
+        }
+      }
+      // reserva el remolque acoplado por el planificador
+      if (route.trailerId) {
+        const trailer = db.trailers.find((t) => t.id === route.trailerId);
+        if (trailer) {
+          trailer.status = 'reservado';
+          trailer.attachedToVehicleId = route.vehicleId;
         }
       }
       return route;
@@ -444,11 +459,12 @@ async function handleApi(req, res, pathname, query) {
       let bulto = null;
       if (body.barcode) {
         const code = String(body.barcode).trim();
-        bulto = route.loadingPlan.find(
-          (b) => !b.loaded && (b.barcode === code || b.containerId === code)
-        );
+        // acepta container ID (etiqueta física), alt_code o código completo
+        const matches = (b) =>
+          b.barcode === code || b.containerId === code || b.altCode === code || b.sourceCode === code;
+        bulto = route.loadingPlan.find((b) => !b.loaded && matches(b));
         if (!bulto) {
-          const yaCargado = route.loadingPlan.find((b) => b.barcode === code || b.containerId === code);
+          const yaCargado = route.loadingPlan.find(matches);
           return sendJSON(res, 409, {
             error: yaCargado ? `El bulto ${code} ya fue cargado` : `Código ${code} no pertenece a esta ruta`,
           });
@@ -521,7 +537,10 @@ async function handleApi(req, res, pathname, query) {
       const confirmed = new Set((body.bultoBarcodes || []).map((c) => String(c).trim()));
       const bultos = (route.loadingPlan || []).filter((b) => b.orderId === order.id);
       for (const b of bultos) {
-        const wasConfirmed = confirmed.has(b.barcode) || confirmed.has(b.containerId) || resultado === 'entregado';
+        const wasConfirmed =
+          confirmed.has(b.barcode) || confirmed.has(b.containerId) ||
+          confirmed.has(b.altCode) || confirmed.has(b.sourceCode) ||
+          resultado === 'entregado';
         b.delivered = wasConfirmed && resultado !== 'rechazado' && resultado !== 'devolucion';
         b.deliveredAt = new Date().toISOString();
         b.deliveryStatus =
@@ -566,6 +585,10 @@ async function handleApi(req, res, pathname, query) {
       route.startedAt = new Date().toISOString();
       const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
       if (vehicle) vehicle.status = 'en_ruta';
+      if (route.trailerId) {
+        const trailer = db.trailers.find((t) => t.id === route.trailerId);
+        if (trailer) trailer.status = 'acoplado';
+      }
       for (const stop of route.stops) {
         const order = stop.orderId && db.orders.find((o) => o.id === stop.orderId);
         if (order) order.status = 'en_ruta';
@@ -590,6 +613,14 @@ async function handleApi(req, res, pathname, query) {
       }
       const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
       if (vehicle && vehicle.status === 'en_ruta') vehicle.status = 'disponible';
+      // libera el remolque si la ruta lo tenía reservado o acoplado
+      if (route.trailerId) {
+        const trailer = db.trailers.find((t) => t.id === route.trailerId);
+        if (trailer && ['reservado', 'acoplado'].includes(trailer.status)) {
+          trailer.status = 'disponible';
+          trailer.attachedToVehicleId = null;
+        }
+      }
       save();
       return sendJSON(res, 200, { data: route });
     }
@@ -646,6 +677,72 @@ async function handleApi(req, res, pathname, query) {
   }
   if (resource === 'employers' && method === 'GET') {
     return sendJSON(res, 200, { data: db.employers, count: db.employers.length });
+  }
+
+  // ---- remolques y puntos de acopio -------------------------------
+  if (resource === 'trailers') {
+    if (method === 'GET') return sendJSON(res, 200, { data: db.trailers, count: db.trailers.length });
+    if (method === 'POST' && !id) {
+      const body = await readBody(req);
+      if (!body.code) return badRequest(res, 'El código del remolque es obligatorio');
+      const trailer = {
+        id: nextId('TRL'),
+        code: body.code,
+        name: body.name || body.code,
+        capacityKg: Number(body.capacityKg) || 1000,
+        capacityM3: Number(body.capacityM3) || 20,
+        foldable: body.foldable !== false,
+        status: 'disponible',
+        locationName: db.company.depot.name,
+        lat: db.company.depot.lat,
+        lng: db.company.depot.lng,
+        attachedToVehicleId: null,
+      };
+      db.trailers.push(trailer);
+      save();
+      return sendJSON(res, 201, { data: trailer });
+    }
+    if (method === 'PUT' && id) {
+      const t = db.trailers.find((x) => x.id === id);
+      if (!t) return notFound(res);
+      const body = await readBody(req);
+      for (const k of ['code', 'name', 'capacityKg', 'capacityM3', 'foldable', 'status', 'locationName', 'lat', 'lng']) {
+        if (k in body) t[k] = body[k];
+      }
+      if (body.status === 'disponible') t.attachedToVehicleId = null;
+      save();
+      return sendJSON(res, 200, { data: t });
+    }
+    if (method === 'DELETE' && id) {
+      const idx = db.trailers.findIndex((x) => x.id === id);
+      if (idx === -1) return notFound(res);
+      if (db.trailers[idx].status === 'acoplado' || db.trailers[idx].status === 'reservado') {
+        return badRequest(res, 'El remolque está asignado a una ruta; libéralo primero');
+      }
+      const [removed] = db.trailers.splice(idx, 1);
+      save();
+      return sendJSON(res, 200, { data: removed });
+    }
+  }
+  if (resource === 'yards') {
+    if (method === 'GET') return sendJSON(res, 200, { data: db.yards, count: db.yards.length });
+    if (method === 'POST' && !id) {
+      const body = await readBody(req);
+      if (!body.name || typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+        return badRequest(res, 'Se requieren name, lat y lng');
+      }
+      const yard = { id: nextId('YRD'), name: body.name, city: body.city || '', lat: body.lat, lng: body.lng };
+      db.yards.push(yard);
+      save();
+      return sendJSON(res, 201, { data: yard });
+    }
+    if (method === 'DELETE' && id) {
+      const idx = db.yards.findIndex((x) => x.id === id);
+      if (idx === -1) return notFound(res);
+      const [removed] = db.yards.splice(idx, 1);
+      save();
+      return sendJSON(res, 200, { data: removed });
+    }
   }
 
   // ---- maestro de direcciones -------------------------------------

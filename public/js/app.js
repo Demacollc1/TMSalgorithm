@@ -14,6 +14,7 @@ const state = {
   deposits: [],
   fleets: [],
   schemas: [],
+  trailers: [],
   routes: [],
   view: 'panel',
   maps: {},
@@ -69,12 +70,13 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
 
 // ------------------------------------------------------------ carga de datos
 async function refreshData() {
-  [state.orders, state.vehicles, state.drivers, state.routes, state.companies] = await Promise.all([
+  [state.orders, state.vehicles, state.drivers, state.routes, state.companies, state.trailers] = await Promise.all([
     api('/orders'),
     api('/vehicles'),
     api('/drivers'),
     api('/routes'),
     api('/companies'),
+    api('/trailers'),
   ]);
   if (!state.company) state.company = await api('/company');
   if (!state.deposits.length) {
@@ -338,7 +340,7 @@ function renderFleet() {
             ? `<br><span class="muted">${v.tags.map(esc).join(' · ')}</span>`
             : ''
         }</td>
-        <td>${esc(v.type)}${v.hasParrilla ? ' ▤' : ''}</td>
+        <td>${esc(v.type)}${v.hasParrilla ? ' ▤' : ''}${v.hasTowHitch ? ' <span title="Bola para remolque">🔗</span>' : ''}${v.hasLiftgate ? ' <span title="Montacargas de cola">⬆</span>' : ''}</td>
         <td>${v.capacityKg}</td>
         <td>${v.capacityM3}</td>
         <td>${esc(driver ? driver.name : '—')}</td>
@@ -364,6 +366,25 @@ function renderFleet() {
       </tr>`
     )
     .join('');
+
+  const TRL_BADGE = { disponible: 'disponible', reservado: 'asignado', acoplado: 'en_ruta', estacionado: 'planificada' };
+  document.querySelector('#trailers-table tbody').innerHTML = (state.trailers || [])
+    .map(
+      (t) => `
+      <tr>
+        <td><strong>${esc(t.code)}</strong></td>
+        <td>${esc(t.name)}${t.foldable ? ' <span class="muted">(plegable)</span>' : ''}</td>
+        <td>${t.capacityKg}</td>
+        <td>${t.capacityM3}</td>
+        <td>${badge(t.status, TRL_BADGE[t.status] || t.status)}</td>
+        <td class="wrap">${esc(t.locationName || '—')}${t.attachedToVehicleId ? ' · ' + esc((state.vehicles.find((v) => v.id === t.attachedToVehicleId) || {}).plate || '') : ''}</td>
+        <td>
+          ${t.status === 'estacionado' ? `<button class="btn-link" onclick="freeTrailer('${t.id}')">Marcar retirado</button>` : ''}
+          <button class="btn-link danger" onclick="deleteTrailer('${t.id}')">Eliminar</button>
+        </td>
+      </tr>`
+    )
+    .join('') || '<tr><td colspan="7" class="muted">Sin remolques registrados.</td></tr>';
 
   document.querySelector('#fleets-table tbody').innerHTML = (state.fleets || [])
     .map(
@@ -398,6 +419,8 @@ function vehicleForm(v = {}) {
       <label class="field"><span>Capacidad (m³)</span><input class="input" id="v-m3" type="number" value="${v.capacityM3 ?? 8}"/></label>
       <label class="check full"><input type="checkbox" id="v-nodriza" ${v.isNodriza ? 'checked' : ''}/><span>Es madre nodriza (transbordo)</span></label>
       <label class="check full"><input type="checkbox" id="v-parrilla" ${v.hasParrilla ? 'checked' : ''}/><span>Tiene parrilla / puede llevar tubos arriba</span></label>
+      <label class="check full"><input type="checkbox" id="v-bola" ${v.hasTowHitch ? 'checked' : ''}/><span>Tiene <strong>bola para remolque</strong> (puede acoplar remolques plegables)</span></label>
+      <label class="check full"><input type="checkbox" id="v-liftgate" ${v.hasLiftgate ? 'checked' : ''}/><span>Tiene <strong>ascensor / montacargas en la cola</strong></span></label>
       <label class="check full"><input type="checkbox" id="v-apto" ${v.apto !== false ? 'checked' : ''}/><span><strong>Apto para viajar</strong> (matrícula, revisión y mantenimiento al día)</span></label>
       <label class="field full"><span>Observaciones de aptitud</span><input class="input" id="v-apto-notes" value="${esc(v.aptoNotes || '')}" placeholder="Ej.: en mantenimiento, sin revisión vehicular"/></label>
     </div>
@@ -417,6 +440,8 @@ function readVehicleForm() {
     capacityM3: Number(document.getElementById('v-m3').value),
     isNodriza: document.getElementById('v-nodriza').checked,
     hasParrilla: document.getElementById('v-parrilla').checked,
+    hasTowHitch: document.getElementById('v-bola').checked,
+    hasLiftgate: document.getElementById('v-liftgate').checked,
     apto: document.getElementById('v-apto').checked,
     aptoNotes: document.getElementById('v-apto-notes').value.trim(),
   };
@@ -484,6 +509,61 @@ document.getElementById('btn-new-driver').addEventListener('click', () => {
     }
   };
 });
+
+document.getElementById('btn-new-trailer').addEventListener('click', () => {
+  openModal('Nuevo remolque', `
+    <div class="form-grid">
+      <label class="field"><span>Código</span><input class="input" id="t-code" placeholder="RMQ-04"/></label>
+      <label class="field"><span>Nombre</span><input class="input" id="t-name" placeholder="Remolque plegable 04"/></label>
+      <label class="field"><span>Capacidad (kg)</span><input class="input" id="t-kg" type="number" value="1500"/></label>
+      <label class="field"><span>Capacidad (m³)</span><input class="input" id="t-m3" type="number" value="28"/></label>
+      <label class="check full"><input type="checkbox" id="t-fold" checked/><span>Es plegable</span></label>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="t-save">Guardar</button>
+    </div>`);
+  document.getElementById('t-save').onclick = async () => {
+    try {
+      await api('/trailers', {
+        method: 'POST',
+        body: {
+          code: document.getElementById('t-code').value.trim(),
+          name: document.getElementById('t-name').value.trim(),
+          capacityKg: Number(document.getElementById('t-kg').value),
+          capacityM3: Number(document.getElementById('t-m3').value),
+          foldable: document.getElementById('t-fold').checked,
+        },
+      });
+      closeModal();
+      toast('Remolque agregado');
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  };
+});
+
+window.freeTrailer = async (id) => {
+  if (!confirm('¿Marcar el remolque como retirado del acopio y disponible en el depósito?')) return;
+  const depot = state.company.depot;
+  await api('/trailers/' + id, {
+    method: 'PUT',
+    body: { status: 'disponible', locationName: depot.name, lat: depot.lat, lng: depot.lng },
+  });
+  toast('Remolque disponible en el depósito');
+  render();
+};
+
+window.deleteTrailer = async (id) => {
+  if (!confirm('¿Eliminar este remolque?')) return;
+  try {
+    await api('/trailers/' + id, { method: 'DELETE' });
+    render();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
 
 window.deleteDriver = async (id) => {
   if (!confirm('¿Eliminar este conductor?')) return;
@@ -575,16 +655,19 @@ function drawRoutesOnMap(map, layerKey, routes, { showPending = true } = {}) {
     L.polyline(route.polyline, style).addTo(group);
     route.stops.forEach((stop) => {
       const done = stop.status === 'completada';
+      const mark = stop.transferPointId ? '⇄' : stop.trailerAction ? '🅿' : stop.seq;
       const icon = L.divIcon({
         className: '',
-        html: `<div class="stop-marker ${done ? 'done' : ''}" style="--stop-color:${route.isNodriza ? '#101a2b' : color}">${stop.transferPointId ? '⇄' : stop.seq}</div>`,
+        html: `<div class="stop-marker ${done ? 'done' : ''}" style="--stop-color:${route.isNodriza ? '#101a2b' : color}">${mark}</div>`,
         iconSize: [22, 22],
         iconAnchor: [11, 11],
       });
       const order = stop.orderId ? state.orders.find((o) => o.id === stop.orderId) : null;
       const popup = order
         ? `<strong>${esc(order.code)}</strong> · ${badge(order.type)}<br>${esc(order.customer)}<br>${esc(order.address)}<br>ETA ${stop.eta} · ${badge(order.status)}`
-        : `<strong>${esc(stop.name || 'Punto de transbordo')}</strong><br>ETA ${stop.eta} · madre nodriza`;
+        : stop.trailerAction
+          ? `<strong>${esc(stop.name)}</strong><br>ETA ${stop.eta} · punto de acopio`
+          : `<strong>${esc(stop.name || 'Punto de transbordo')}</strong><br>ETA ${stop.eta} · madre nodriza`;
       L.marker([stop.lat, stop.lng], { icon }).addTo(group).bindPopup(popup);
     });
   });
@@ -689,6 +772,7 @@ function renderRoutesList(container, routes, { actions = false, progress = false
             <span>⚖️ ${route.loadKg} kg (${route.utilizationPct}% uso)</span>
             ${route.pickupKg ? `<span>📥 ${route.pickupKg} kg recolección</span>` : ''}
             ${route.fedByNodriza ? `<span>🔄 abastecida por nodriza</span>` : ''}
+            ${route.trailerId ? `<span>🚛🔗 remolque ${esc(route.trailerCode)} (+${route.trailerCapacityM3} m³) · se ${route.trailerPickupAtEnd ? 'retira al final' : 'deja'} en ${esc(route.trailerYard ? route.trailerYard.name : 'acopio')}</span>` : ''}
           </div>
           ${progress ? `<div class="route-progress"><div style="width:${pct}%"></div></div><div class="muted" style="margin-top:4px">${done}/${route.stops.length} paradas completadas</div>` : ''}
           ${actions && route.status === 'propuesta'
@@ -726,6 +810,8 @@ document.getElementById('btn-optimize').addEventListener('click', async () => {
           startTime: document.getElementById('opt-start').value,
           returnToDepot: document.getElementById('opt-return').checked,
           useNodriza: document.getElementById('opt-nodriza').checked,
+          useTrailers: document.getElementById('opt-trailers').checked,
+          trailerPickup: document.getElementById('opt-trailer-pickup').value,
           schemaId: document.getElementById('opt-schema').value || undefined,
           depotId: document.getElementById('opt-depot').value || undefined,
         },
@@ -831,12 +917,13 @@ async function renderLoadDetail(routeId) {
   const route = state.routes.find((r) => r.id === routeId);
   const vehicle = state.vehicles.find((v) => v.id === route.vehicleId);
   const PHASES = {
+    0: { title: `Fase 0 · Remolque ${esc(route.trailerCode || '')} — carga volumétrica`, hint: `Va en el remolque y se entrega antes de soltarlo en ${esc(route.trailerYard ? route.trailerYard.name : 'el acopio')}.` },
     1: { title: 'Fase 1 · Volumétrica pesada — delantera central', hint: 'Sacos y pesados primero, al piso delantero-central por estabilidad.' },
     2: { title: 'Fase 2 · Tubos y largos — parrilla / superior', hint: vehicle && !vehicle.hasParrilla ? '⚠️ Este vehículo NO tiene parrilla: reubicar o cambiar de vehículo.' : 'Asegurar con eslingas.' },
     3: { title: 'Fase 3 · Paquetería — cajón en orden inverso de entrega', hint: 'Lo del último cliente al fondo; lo del primero junto a la puerta.' },
   };
 
-  const groups = [1, 2, 3]
+  const groups = [0, 1, 2, 3]
     .map((phase) => {
       const items = plan.filter((b) => b.phase === phase);
       if (!items.length) return '';

@@ -43,6 +43,8 @@ function mapVehicles(raw, drivers) {
       isViaje: tags.includes('VIAJE'), // característica: apto para viajes fuera de la ciudad
       isNodriza: false,
       hasParrilla: true, // puede llevar tubos en la parte superior (editable)
+      hasTowHitch: !tags.includes('FURGON'), // bola para remolque (editable)
+      hasLiftgate: false, // ascensor / montacargas en la cola (editable)
       apto: v.is_active !== false,
       aptoNotes: v.is_active === false ? 'Inactivo en driv.in' : '',
       driverId: driver ? driver.id : null,

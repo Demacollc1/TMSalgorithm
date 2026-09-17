@@ -166,7 +166,19 @@
           <p class="muted">${done}/${stops.length} paradas completadas · <span id="gps-info">—</span></p>
           <button class="btn btn-gray" onclick="backToList()">← Mis rutas</button>
         </div>
-        ${stops.map((s) => renderStop(route, s, currentStop)).join('')}`;
+        ${route.stops
+          .map((s) =>
+            s.trailerAction
+              ? `<div class="card stop ${s.status === 'completada' ? 'done' : ''}">
+                  <div class="stop-head"><h3>🅿 ${esc(s.name)}</h3>
+                  <span class="badge ${s.status === 'completada' ? 'b-green' : 'b-gray'}">${s.status === 'completada' ? 'HECHO' : 'ETA ' + esc(s.eta)}</span></div>
+                  <p class="muted">${s.trailerAction === 'drop' ? 'Estaciona y desacopla el remolque en el punto de acopio.' : 'Acopla el remolque y verifica luces y seguro.'}</p>
+                </div>`
+              : s.orderId
+                ? renderStop(route, s, currentStop)
+                : ''
+          )
+          .join('')}`;
       focusScan();
     }
 
@@ -229,7 +241,8 @@
       if (!code) return;
       const route = db.routes.find((r) => r.id === current);
       const bulto = (route.loadingPlan || []).find(
-        (b) => b.orderId === orderId && (b.barcode === code || b.containerId === code)
+        (b) => b.orderId === orderId &&
+          (b.barcode === code || b.containerId === code || b.altCode === code || b.sourceCode === code)
       );
       if (!bulto) return toast('El código ' + code + ' no pertenece a este cliente', true);
       scanBuffer[orderId] = scanBuffer[orderId] || new Set();

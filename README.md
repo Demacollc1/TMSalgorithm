@@ -87,6 +87,15 @@ Flujo completo desde el plan del ERP hasta la entrega confirmada:
    módulo 11), se envía el payload al webservice configurado
    (`PUT /api/v1/billing-config`) y quedan los formatos imprimibles en
    `/print/route/{id}`.
+4b. **Remolques plegables y puntos de acopio** — para tanques y tubería
+   (mucho volumen, poco peso), el planificador acopla un remolque a un
+   camión con **bola** cuando falta capacidad volumétrica, y programa la
+   parada *"Dejar remolque"* en el **punto de acopio** más cercano en
+   cuanto la carga restante cabe en el camión solo (el remolque
+   dificulta la maniobra). Se retira al final de la ruta o queda
+   **estacionado** para retirarlo otro día u otra ruta. Los vehículos
+   registran bola de remolque y montacargas/ascensor de cola; la carga
+   del remolque es la **Fase 0** de la lista de carga.
 5. **App del conductor** (`/conductor`, móvil) — sigue la ruta por GPS;
    al llegar, la parada queda *en sitio* hasta que el conductor confirma
    cada bulto con el mismo escáner, con **entregas parciales,
