@@ -192,8 +192,22 @@ function load() {
 }
 
 function init() {
-  if (!load()) {
+  const loaded = load();
+  // Auto-reparación: si no había base, o si la base guardada quedó sin la
+  // configuración real (vehículos/bodegas vacíos, típico de una base vieja),
+  // recarga los datos reales desde config/ sin que el usuario tenga que
+  // borrar data/db.json a mano.
+  const sinConfig = !db.vehicles || db.vehicles.length === 0 || !db.deposits || db.deposits.length === 0;
+  if (!loaded || sinConfig) {
+    if (loaded && sinConfig) {
+      console.log('Base local sin configuración real detectada: recargando datos desde config…');
+    }
+    // conserva pedidos/rutas si por alguna razón existían
+    const prevOrders = Array.isArray(db.orders) ? db.orders : [];
+    const prevRoutes = Array.isArray(db.routes) ? db.routes : [];
     seedData();
+    if (loaded && prevOrders.length) db.orders = prevOrders;
+    if (loaded && prevRoutes.length) db.routes = prevRoutes;
     save();
   }
 }
