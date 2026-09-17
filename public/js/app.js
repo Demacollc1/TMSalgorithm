@@ -432,7 +432,7 @@ window.deleteVehicle = async (id) => {
 document.getElementById('btn-new-driver').addEventListener('click', () => {
   openModal('Nuevo conductor', `
     <label class="field"><span>Nombre</span><input class="input" id="d-name"/></label>
-    <label class="field"><span>Teléfono</span><input class="input" id="d-phone" placeholder="+56 9 ..."/></label>
+    <label class="field"><span>Teléfono</span><input class="input" id="d-phone" placeholder="+593 99 ..."/></label>
     <label class="field"><span>Licencia</span><input class="input" id="d-license" value="B"/></label>
     <div class="actions">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
