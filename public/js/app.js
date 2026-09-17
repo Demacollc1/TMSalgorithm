@@ -125,6 +125,26 @@ window.addEventListener('hashchange', () => {
   setView(view);
 });
 
+// ---------------------------------------- menú lateral en móvil (drawer)
+(function setupDrawer() {
+  const sidebar = document.getElementById('sidebar');
+  const toggle = document.getElementById('nav-toggle');
+  const backdrop = document.getElementById('nav-backdrop');
+  if (!sidebar || !toggle || !backdrop) return;
+  const setOpen = (open) => {
+    sidebar.classList.toggle('open', open);
+    backdrop.classList.toggle('show', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+  };
+  toggle.addEventListener('click', () => setOpen(!sidebar.classList.contains('open')));
+  backdrop.addEventListener('click', () => setOpen(false));
+  // al elegir una sección se cierra el drawer (solo importa en móvil)
+  sidebar.querySelectorAll('.nav-item').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+  // Escape cierra
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+})();
+
 // ------------------------------------------------------------ render
 async function render() {
   try {

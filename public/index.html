@@ -9,7 +9,15 @@
   <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
-  <aside class="sidebar">
+  <div class="topbar">
+    <button id="nav-toggle" class="nav-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-brand"><b>MACO</b>TRANS · TMS</div>
+  </div>
+  <div id="nav-backdrop" class="nav-backdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <span class="brand-icon">🚚</span>
       <div>
