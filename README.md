@@ -25,11 +25,15 @@ npm start          # o: node server.js  (PORT=4000 npm start para otro puerto)
 npm test           # pruebas del optimizador y del cotizador
 ```
 
-Al primer arranque se cargan datos de demostración (Guayaquil, Ecuador):
-3 empresas cliente con API key (incluye DEMACO como ERP), 18 pedidos con
-sus bultos, 5 vehículos (uno madre nodriza y uno **no apto** en
-mantenimiento) y 4 conductores. El botón **“Reiniciar demo”** del TMS
-restaura todo. Precios en USD.
+Al primer arranque se carga la **configuración real de la organización**
+desde `config/demaco-drivin.json` (export de driv.in): 21 vehículos con
+sus placas, capacidades (UN/kg/m³) y características (URBANO, FURGON,
+VIAJE…), 29 tripulantes (conductores y peonetas), 6 bodegas, 6 flotas,
+12 esquemas de ruteo y 1000 direcciones del maestro de clientes. Los
+pedidos empiezan vacíos: se importan con `POST /api/v1/import` (formato
+Driv.in) o llegan por el portal y el API de integración. El botón
+**“Recargar datos”** vuelve a leer la configuración y limpia pedidos y
+rutas. Precios en USD.
 
 ## Arquitectura
 

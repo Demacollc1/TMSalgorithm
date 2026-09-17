@@ -21,6 +21,7 @@
       <a href="#/panel" data-view="panel" class="nav-item active"><span>📊</span> Panel</a>
       <a href="#/pedidos" data-view="pedidos" class="nav-item"><span>📦</span> Pedidos</a>
       <a href="#/flota" data-view="flota" class="nav-item"><span>🚛</span> Flota</a>
+      <a href="#/direcciones" data-view="direcciones" class="nav-item"><span>📍</span> Direcciones</a>
       <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
       <a href="#/carga" data-view="carga" class="nav-item"><span>📦</span> Carga</a>
       <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
@@ -31,7 +32,7 @@
       <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
     </nav>
     <div class="sidebar-footer">
-      <button id="btn-reset" class="btn btn-ghost btn-sm" title="Restaura los datos de demostración">↺ Reiniciar demo</button>
+      <button id="btn-reset" class="btn btn-ghost btn-sm" title="Recarga la configuración real (vehículos, tripulación, direcciones) y limpia pedidos y rutas">↺ Recargar datos</button>
     </div>
   </aside>
 
@@ -103,13 +104,46 @@
             <tbody></tbody>
           </table>
         </div>
-        <div class="card table-card">
-          <h3>Conductores</h3>
-          <table class="table" id="drivers-table">
-            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Licencia</th><th>Estado</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
+        <div>
+          <div class="card table-card">
+            <h3>Tripulación</h3>
+            <table class="table" id="drivers-table">
+              <thead><tr><th>Nombre</th><th>Rol</th><th>Teléfono</th><th>Cédula</th><th>Estado</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card table-card" style="margin-top:16px">
+            <h3>Flotas</h3>
+            <table class="table" id="fleets-table">
+              <thead><tr><th>Nombre</th><th>Vehículos</th><th>Cap. kg</th><th>Cap. m³</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ========================= DIRECCIONES ========================= -->
+    <section id="view-direcciones" class="view hidden">
+      <header class="view-header">
+        <h1>Direcciones</h1>
+        <p class="muted">Maestro de puntos de entrega y clientes (importado de la configuración real).</p>
+        <div class="header-actions">
+          <select id="adr-georef" class="input">
+            <option value="">Todas</option>
+            <option value="true">Georeferenciadas</option>
+            <option value="false">No georeferenciadas</option>
+          </select>
+          <input class="input" id="adr-q" placeholder="Buscar cliente, dirección, ciudad…" style="min-width:260px" />
+        </div>
+      </header>
+      <div class="kpi-grid" id="adr-kpis"></div>
+      <div class="card table-card">
+        <table class="table" id="addresses-table">
+          <thead><tr><th>Georef</th><th>Cliente</th><th>Dirección</th><th>Ciudad</th><th>Provincia</th><th>Tipo</th><th>Lat / Lng</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted" id="adr-count" style="padding:10px 16px"></p>
       </div>
     </section>
 
@@ -122,6 +156,14 @@
       <div class="plan-layout">
         <div class="plan-panel card">
           <h3>Parámetros</h3>
+          <label class="field">
+            <span>Esquema de ruteo</span>
+            <select id="opt-schema" class="input" style="width:100%"></select>
+          </label>
+          <label class="field">
+            <span>Depósito de salida</span>
+            <select id="opt-depot" class="input" style="width:100%"></select>
+          </label>
           <label class="field">
             <span>Hora de inicio</span>
             <input type="time" id="opt-start" class="input" value="08:30" />

@@ -335,12 +335,32 @@ async function handleApi(req, res, pathname, query) {
     if (!orders.length) return badRequest(res, 'No hay pedidos pendientes para planificar');
     if (!vehicles.length) return badRequest(res, 'No hay vehículos disponibles y aptos para viajar');
 
-    const result = optimize({
-      depot: db.company.depot,
-      orders,
-      vehicles,
-      options: body.options || {},
-    });
+    // esquema de ruteo: aporta depósito, tiempo de servicio, velocidad y retorno
+    const options = { ...(body.options || {}) };
+    let depot = db.company.depot;
+    let schema = null;
+    if (options.schemaId) {
+      schema = db.schemas.find((s) => s.id === options.schemaId);
+      if (!schema) return badRequest(res, 'Esquema no encontrado');
+      if (schema.deposit) {
+        depot = {
+          name: schema.deposit.name,
+          address: schema.deposit.address,
+          lat: schema.deposit.lat,
+          lng: schema.deposit.lng,
+        };
+      }
+      if (options.returnToDepot === undefined) options.returnToDepot = schema.returnToDepot;
+      if (!options.serviceTimeMin) options.serviceTimeMin = schema.serviceTimeMin;
+      if (!options.speedKmh) options.speedKmh = Math.min(schema.maxSpeedKmh, 60);
+    }
+    if (options.depotId) {
+      const dep = db.deposits.find((d) => d.id === options.depotId);
+      if (!dep) return badRequest(res, 'Depósito no encontrado');
+      depot = { name: dep.name, address: dep.address, lat: dep.lat, lng: dep.lng };
+    }
+
+    const result = optimize({ depot, orders, vehicles, options });
 
     // materializa las rutas
     // las rutas nacen como PROPUESTA del planificador; el usuario las aprueba
@@ -349,6 +369,9 @@ async function handleApi(req, res, pathname, query) {
         id: nextId('RUT'),
         date: body.date || new Date().toISOString().slice(0, 10),
         status: 'propuesta',
+        schemaId: schema ? schema.id : null,
+        schemaName: schema ? schema.name : null,
+        depotName: depot.name,
         loadStatus: null,
         loadingPlan: null,
         documents: null,
@@ -611,6 +634,61 @@ async function handleApi(req, res, pathname, query) {
     }
   }
 
+  // ---- catálogos de configuración (datos reales) ------------------
+  if (resource === 'deposits' && method === 'GET') {
+    return sendJSON(res, 200, { data: db.deposits, count: db.deposits.length });
+  }
+  if (resource === 'fleets' && method === 'GET') {
+    return sendJSON(res, 200, { data: db.fleets, count: db.fleets.length });
+  }
+  if (resource === 'schemas' && method === 'GET') {
+    return sendJSON(res, 200, { data: db.schemas, count: db.schemas.length });
+  }
+  if (resource === 'employers' && method === 'GET') {
+    return sendJSON(res, 200, { data: db.employers, count: db.employers.length });
+  }
+
+  // ---- maestro de direcciones -------------------------------------
+  if (resource === 'addresses') {
+    if (method === 'GET' && id === 'kpis') {
+      const total = db.addresses.length;
+      const georef = db.addresses.filter((a) => a.isGeoref).length;
+      const clients = new Set(db.addresses.map((a) => a.client).filter(Boolean)).size;
+      return sendJSON(res, 200, {
+        data: { total, clients, georef, noGeoref: total - georef },
+      });
+    }
+    if (method === 'GET' && !id) {
+      let list = db.addresses;
+      const q = (query.get('q') || '').toLowerCase();
+      if (q) {
+        list = list.filter(
+          (a) =>
+            (a.name || '').toLowerCase().includes(q) ||
+            (a.client || '').toLowerCase().includes(q) ||
+            (a.address || '').toLowerCase().includes(q) ||
+            (a.code || '').toLowerCase().includes(q) ||
+            (a.city || '').toLowerCase().includes(q)
+        );
+      }
+      if (query.get('georef') === 'true') list = list.filter((a) => a.isGeoref);
+      if (query.get('georef') === 'false') list = list.filter((a) => !a.isGeoref);
+      const limit = Math.min(Number(query.get('limit')) || 100, 500);
+      return sendJSON(res, 200, { data: list.slice(0, limit), count: list.length });
+    }
+    if (method === 'PUT' && id) {
+      const a = db.addresses.find((x) => x.id === id);
+      if (!a) return notFound(res);
+      const body = await readBody(req);
+      for (const k of ['name', 'client', 'address', 'reference', 'city', 'province', 'type', 'lat', 'lng', 'contact']) {
+        if (k in body) a[k] = body[k];
+      }
+      if (typeof a.lat === 'number' && typeof a.lng === 'number') a.isGeoref = true;
+      save();
+      return sendJSON(res, 200, { data: a });
+    }
+  }
+
   // ---- importación de planes (formato Driv.in del ERP) ------------
   if (resource === 'import' && method === 'POST') {
     const body = await readBody(req);
@@ -722,7 +800,7 @@ async function handleApi(req, res, pathname, query) {
   }
   if (resource === 'reset' && method === 'POST') {
     reset();
-    return sendJSON(res, 200, { data: { ok: true, message: 'Datos reiniciados con seed de demostración' } });
+    return sendJSON(res, 200, { data: { ok: true, message: 'Configuración real recargada; pedidos y rutas limpiados' } });
   }
 
   return notFound(res, `Ruta de API no encontrada: ${method} ${pathname}`);

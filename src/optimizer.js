@@ -136,14 +136,14 @@ function timeWindowNudge(sequence) {
     .map((x) => x.o);
 }
 
-function buildStops(origin, sequence, startTimeMin, speedKmh) {
+function buildStops(origin, sequence, startTimeMin, speedKmh, serviceMin) {
   let t = startTimeMin;
   let prev = origin;
   return sequence.map((order, i) => {
     const legKm = haversineKm(prev, order);
     t += (legKm / speedKmh) * 60;
     const eta = minutesToHHMM(t);
-    t += SERVICE_MIN;
+    t += serviceMin;
     prev = order;
     return {
       seq: i + 1,
@@ -205,7 +205,7 @@ function sweepAssign(depot, orders, vehicles) {
   return { bags, unassigned };
 }
 
-function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta }) {
+function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta, speedKmh = DEFAULT_SPEED_KMH, serviceMin = SERVICE_MIN }) {
   if (!orders.length) return null;
   let seq = nearestNeighborOrder(origin, orders);
   seq = twoOpt(origin, seq, returnToOrigin);
@@ -215,9 +215,9 @@ function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta }
   const points = [origin, ...seq];
   if (returnToOrigin) points.push(origin);
   const distanceKm = routeDistanceKm(points);
-  const stops = buildStops(origin, seq, hhmmToMinutes(startHHMM), DEFAULT_SPEED_KMH);
+  const stops = buildStops(origin, seq, hhmmToMinutes(startHHMM), speedKmh, serviceMin);
   const durationMin =
-    (distanceKm / DEFAULT_SPEED_KMH) * 60 + seq.length * SERVICE_MIN;
+    (distanceKm / speedKmh) * 60 + seq.length * serviceMin;
   const loadKg = orders
     .filter((o) => o.type !== 'recoleccion')
     .reduce((s, o) => s + (o.weightKg || 0), 0);
@@ -289,6 +289,8 @@ function optimize({ depot, orders, vehicles, options = {} }) {
   const startHHMM = options.startTime || '08:30';
   const returnToDepot = options.returnToDepot !== false;
   const useNodriza = !!options.useNodriza;
+  const speedKmh = Number(options.speedKmh) > 0 ? Number(options.speedKmh) : DEFAULT_SPEED_KMH;
+  const serviceMin = Number(options.serviceTimeMin) >= 0 ? Number(options.serviceTimeMin) : SERVICE_MIN;
 
   const motherships = vehicles.filter((v) => v.isNodriza);
   const satellites = vehicles.filter((v) => !v.isNodriza);
@@ -353,6 +355,8 @@ function optimize({ depot, orders, vehicles, options = {} }) {
         returnToOrigin: false,
         startHHMM: minutesToHHMM(hhmmToMinutes(startHHMM) + 45),
         meta: { fedByNodriza: nodriza.id, transferPointId: tp.id },
+        speedKmh,
+        serviceMin,
       });
       if (route) routes.push(route);
     });
@@ -369,6 +373,8 @@ function optimize({ depot, orders, vehicles, options = {} }) {
         returnToOrigin: returnToDepot,
         startHHMM,
         meta: {},
+        speedKmh,
+        serviceMin,
       });
       if (route) routes.push(route);
     });

@@ -362,6 +362,36 @@ test('mapPlan: rechaza formatos inválidos', () => {
   assert.throws(() => mapPlan(null));
 });
 
+console.log('\nDatos reales (config driv.in):');
+
+test('buildFromConfig: mapea todas las entidades de DEMACO', () => {
+  const { buildFromConfig } = require('../src/realdata');
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config', 'demaco-drivin.json'), 'utf8'));
+  const data = buildFromConfig(raw);
+  assert.strictEqual(data.vehicles.length, 21);
+  assert.strictEqual(data.drivers.length, 29);
+  assert.strictEqual(data.deposits.length, 6);
+  assert.strictEqual(data.fleets.length, 6);
+  assert.strictEqual(data.addresses.length, 1000);
+  assert.strictEqual(data.schemas.length, 12);
+  // el depósito principal es la Matriz
+  assert.ok(/matriz/i.test(data.mainDepot.name));
+  // capacidades convertidas: capacity_2=kg, capacity_3 cm³→m³
+  const gmd = data.vehicles.find((v) => v.plate === 'GMD-0015');
+  assert.strictEqual(gmd.capacityKg, 5500);
+  assert.ok(Math.abs(gmd.capacityM3 - 23.63) < 0.01);
+  // tag VIAJE marca los vehículos aptos para viaje
+  assert.ok(data.vehicles.some((v) => v.isViaje));
+  // conductores y peonetas separados
+  assert.strictEqual(data.drivers.filter((d) => d.role === 'conductor').length, 15);
+  assert.strictEqual(data.drivers.filter((d) => d.role === 'peoneta').length, 14);
+  // esquemas con depósito y parámetros de ruteo
+  const matriz = data.schemas.find((s) => s.name.includes('Matriz asig'));
+  assert.strictEqual(matriz.serviceTimeMin, 20);
+  assert.strictEqual(matriz.returnToDepot, true);
+  assert.strictEqual(matriz.deposit.name, 'Demaco Matriz');
+});
+
 console.log('\nFacturación electrónica:');
 
 test('claveAcceso: 49 dígitos numéricos con verificador módulo 11', () => {

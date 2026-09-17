@@ -11,6 +11,9 @@ const state = {
   orders: [],
   vehicles: [],
   drivers: [],
+  deposits: [],
+  fleets: [],
+  schemas: [],
   routes: [],
   view: 'panel',
   maps: {},
@@ -74,6 +77,13 @@ async function refreshData() {
     api('/companies'),
   ]);
   if (!state.company) state.company = await api('/company');
+  if (!state.deposits.length) {
+    [state.deposits, state.fleets, state.schemas] = await Promise.all([
+      api('/deposits'),
+      api('/fleets'),
+      api('/schemas'),
+    ]);
+  }
 }
 
 // ------------------------------------------------------------ enrutado SPA
@@ -105,6 +115,7 @@ async function render() {
   if (view === 'panel') renderPanel();
   if (view === 'pedidos') renderOrders();
   if (view === 'flota') renderFleet();
+  if (view === 'direcciones') renderAddresses();
   if (view === 'planificacion') renderPlanning();
   if (view === 'carga') renderLoading();
   if (view === 'monitoreo') renderMonitoring();
@@ -322,7 +333,11 @@ function renderFleet() {
       return `
       <tr>
         <td><strong>${esc(v.plate)}</strong></td>
-        <td>${esc(v.name)} ${v.isNodriza ? badge('nodriza', 'nodriza') : ''}</td>
+        <td>${esc(v.name)} ${v.isNodriza ? badge('nodriza', 'nodriza') : ''}${
+          v.tags && v.tags.length
+            ? `<br><span class="muted">${v.tags.map(esc).join(' · ')}</span>`
+            : ''
+        }</td>
         <td>${esc(v.type)}${v.hasParrilla ? ' ▤' : ''}</td>
         <td>${v.capacityKg}</td>
         <td>${v.capacityM3}</td>
@@ -340,14 +355,27 @@ function renderFleet() {
     .map(
       (d) => `
       <tr>
-        <td><strong>${esc(d.name)}</strong></td>
+        <td><strong>${esc(d.name)}</strong>${d.email ? `<br><span class="muted">${esc(d.email)}</span>` : ''}</td>
+        <td>${badge(d.role || 'conductor', d.role === 'peoneta' ? 'asignado' : 'entrega')}</td>
         <td>${esc(d.phone)}</td>
-        <td>${esc(d.license)}</td>
+        <td>${esc(d.dni || d.license || '—')}</td>
         <td>${badge(d.status)}</td>
         <td><button class="btn-link danger" onclick="deleteDriver('${d.id}')">Eliminar</button></td>
       </tr>`
     )
     .join('');
+
+  document.querySelector('#fleets-table tbody').innerHTML = (state.fleets || [])
+    .map(
+      (f) => `
+      <tr>
+        <td><strong>${esc(f.name)}</strong></td>
+        <td>${f.countVehicles}</td>
+        <td>${f.capacityKg ? f.capacityKg.toLocaleString('en-US') : '—'}</td>
+        <td>${f.capacityM3 || '—'}</td>
+      </tr>`
+    )
+    .join('') || '<tr><td colspan="4" class="muted">Sin flotas configuradas.</td></tr>';
 }
 
 function vehicleForm(v = {}) {
@@ -463,6 +491,48 @@ window.deleteDriver = async (id) => {
   render();
 };
 
+// ============================================================ DIRECCIONES
+async function renderAddresses() {
+  const kpis = await api('/addresses/kpis');
+  document.getElementById('adr-kpis').innerHTML = `
+    <div class="kpi blue"><div class="kpi-label">Direcciones</div><div class="kpi-value">${kpis.total}</div></div>
+    <div class="kpi blue"><div class="kpi-label">Clientes</div><div class="kpi-value">${kpis.clients}</div></div>
+    <div class="kpi green"><div class="kpi-label">Georeferenciadas</div><div class="kpi-value">${kpis.georef}</div></div>
+    <div class="kpi red"><div class="kpi-label">No georeferenciadas</div><div class="kpi-value">${kpis.noGeoref}</div><div class="kpi-extra">requieren corrección</div></div>
+  `;
+  await loadAddressRows();
+}
+
+async function loadAddressRows() {
+  const q = encodeURIComponent(document.getElementById('adr-q').value.trim());
+  const georef = document.getElementById('adr-georef').value;
+  const res = await fetch(`/api/v1/addresses?q=${q}&georef=${georef}&limit=100`).then((r) => r.json());
+  const list = res.data || [];
+  document.querySelector('#addresses-table tbody').innerHTML = list
+    .map(
+      (a) => `
+    <tr>
+      <td>${a.isGeoref ? '🟢' : '🔴'}</td>
+      <td><strong>${esc(a.client)}</strong>${a.code ? `<br><span class="muted">${esc(a.code)}</span>` : ''}</td>
+      <td class="wrap">${esc(a.address)}</td>
+      <td>${esc(a.city)}</td>
+      <td>${esc(a.province)}</td>
+      <td>${esc(a.type || '—')}</td>
+      <td>${a.lat != null ? `${a.lat.toFixed(5)}, ${a.lng.toFixed(5)}` : '—'}</td>
+    </tr>`
+    )
+    .join('');
+  document.getElementById('adr-count').textContent =
+    `Mostrando ${list.length} de ${res.count} direcciones.`;
+}
+
+let adrTimer = null;
+document.getElementById('adr-q').addEventListener('input', () => {
+  clearTimeout(adrTimer);
+  adrTimer = setTimeout(loadAddressRows, 300);
+});
+document.getElementById('adr-georef').addEventListener('change', loadAddressRows);
+
 // ============================================================ MAPAS
 function ensureMap(key, elId) {
   if (state.maps[key]) return state.maps[key];
@@ -538,6 +608,36 @@ function drawRoutesOnMap(map, layerKey, routes, { showPending = true } = {}) {
 
 // ============================================================ PLANIFICACIÓN
 function renderPlanning() {
+  // selectores de esquema y depósito (datos reales)
+  const schemaSel = document.getElementById('opt-schema');
+  if (schemaSel && !schemaSel.dataset.filled) {
+    schemaSel.innerHTML =
+      '<option value="">— Sin esquema (parámetros manuales) —</option>' +
+      state.schemas
+        .map((s) => `<option value="${s.id}">${esc(s.name)} · ${esc(s.deposit ? s.deposit.name : '')}</option>`)
+        .join('');
+    schemaSel.dataset.filled = '1';
+    schemaSel.addEventListener('change', () => {
+      const sc = state.schemas.find((x) => x.id === schemaSel.value);
+      const depotSel = document.getElementById('opt-depot');
+      if (sc) {
+        document.getElementById('opt-return').checked = sc.returnToDepot;
+        if (sc.deposit) {
+          const dep = state.deposits.find((d) => d.externalId === sc.deposit.externalId || d.name === sc.deposit.name);
+          if (dep) depotSel.value = dep.id;
+        }
+        toast(`Esquema aplicado: servicio ${sc.serviceTimeMin} min · vel. máx ${sc.maxSpeedKmh} km/h`);
+      }
+    });
+  }
+  const depotSel = document.getElementById('opt-depot');
+  if (depotSel && !depotSel.dataset.filled) {
+    depotSel.innerHTML = state.deposits
+      .map((d) => `<option value="${d.id}">${esc(d.name)} · ${esc(d.city)}</option>`)
+      .join('');
+    depotSel.dataset.filled = '1';
+  }
+
   const pending = state.orders.filter((o) => o.status === 'pendiente');
   document.getElementById('opt-orders-count').textContent =
     `${pending.length} pedidos pendientes serán considerados (${pending.filter((o) => o.type === 'recoleccion').length} recolecciones).`;
@@ -580,6 +680,8 @@ function renderRoutesList(container, routes, { actions = false, progress = false
             ${badge(route.status)}
           </div>
           <div class="route-meta">
+            ${route.depotName ? `<span>🏭 ${esc(route.depotName)}</span>` : ''}
+            ${route.schemaName ? `<span>🧩 ${esc(route.schemaName)}</span>` : ''}
             <span>🚛 ${esc(vehicle ? vehicle.plate + ' · ' + vehicle.name : route.vehicleId)}</span>
             <span>📍 ${route.stops.length} paradas</span>
             <span>📏 ${route.distanceKm} km</span>
@@ -624,6 +726,8 @@ document.getElementById('btn-optimize').addEventListener('click', async () => {
           startTime: document.getElementById('opt-start').value,
           returnToDepot: document.getElementById('opt-return').checked,
           useNodriza: document.getElementById('opt-nodriza').checked,
+          schemaId: document.getElementById('opt-schema').value || undefined,
+          depotId: document.getElementById('opt-depot').value || undefined,
         },
       },
     });
@@ -1076,9 +1180,10 @@ window.deleteWebhook = async (id) => {
 
 // ============================================================ reset demo
 document.getElementById('btn-reset').addEventListener('click', async () => {
-  if (!confirm('Esto restaura los datos de demostración y borra rutas y pedidos actuales. ¿Continuar?')) return;
+  if (!confirm('Esto recarga la configuración real (flota, tripulación, direcciones, esquemas) y borra pedidos y rutas actuales. ¿Continuar?')) return;
   await api('/reset', { method: 'POST' });
-  toast('Datos de demostración restaurados');
+  state.deposits = [];
+  toast('Configuración recargada');
   render();
 });
 
