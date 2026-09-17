@@ -1099,6 +1099,12 @@ async function handleApi(req, res, pathname, query) {
     }
   }
   if (resource === 'routing-config') {
+    // diagnóstico en vivo: prueba una llamada real a OSRM y reporta el error
+    if (method === 'GET' && id === 'diag') {
+      routing.configure(db.company.routing);
+      const result = await routing.probe();
+      return sendJSON(res, 200, { data: { ...result, status: routing.getStatus() } });
+    }
     if (method === 'GET') return sendJSON(res, 200, { data: db.company.routing });
     if (method === 'PUT') {
       const body = await readBody(req);

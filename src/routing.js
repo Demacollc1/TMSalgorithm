@@ -38,11 +38,26 @@ const DEFAULTS = {
 };
 
 let CONFIG = { ...DEFAULTS };
+let LAST = { source: null, error: null, at: null }; // diagnóstico de la última llamada
 function configure(cfg) {
   CONFIG = { ...DEFAULTS, ...(cfg || {}), trafficByHour: { ...DEFAULTS.trafficByHour, ...((cfg || {}).trafficByHour || {}) } };
 }
 function getConfig() {
   return CONFIG;
+}
+function getStatus() {
+  return { provider: CONFIG.provider, osrmUrl: CONFIG.osrmUrl, enabled: CONFIG.enabled, last: LAST };
+}
+function noteResult(source, error) {
+  LAST = { source, error: error ? String(error.message || error) : null, at: new Date().toISOString() };
+}
+
+// prueba en vivo del ruteo (2 puntos) para diagnosticar conectividad
+async function probe() {
+  const a = { lat: -2.1522, lng: -79.8779 };
+  const b = { lat: -2.0882, lng: -79.904 };
+  const g = await routeGeometry([a, b]);
+  return { ok: g.source === 'osrm', source: g.source, distanceKm: g.distanceKm, error: LAST.error, osrmUrl: CONFIG.osrmUrl, provider: CONFIG.provider };
 }
 
 function trafficMultiplier(hhmm) {
@@ -52,10 +67,15 @@ function trafficMultiplier(hhmm) {
 }
 
 // ------------------------------------------------------------- HTTP
-function getJson(url, timeoutMs = 6000) {
+function getJsonOnce(url, timeoutMs) {
   return new Promise((resolve, reject) => {
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { timeout: timeoutMs }, (res) => {
+    const req = mod.get(url, { timeout: timeoutMs, headers: { 'User-Agent': 'MacotransTMS/1.0' } }, (res) => {
+      // sigue una redirección simple si la hubiera
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();
+        return getJsonOnce(res.headers.location, timeoutMs).then(resolve, reject);
+      }
       if (res.statusCode >= 400) {
         res.resume();
         return reject(new Error('HTTP ' + res.statusCode));
@@ -63,12 +83,22 @@ function getJson(url, timeoutMs = 6000) {
       let data = '';
       res.on('data', (c) => (data += c));
       res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+        try { resolve(JSON.parse(data)); } catch (e) { reject(new Error('respuesta no-JSON: ' + e.message)); }
       });
     });
     req.on('error', reject);
-    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('timeout', () => req.destroy(new Error('timeout (' + timeoutMs + 'ms)')));
   });
+}
+
+// con un reintento ante fallos transitorios (red / límite del servidor)
+async function getJson(url, timeoutMs = 12000) {
+  try {
+    return await getJsonOnce(url, timeoutMs);
+  } catch (err) {
+    await new Promise((r) => setTimeout(r, 400));
+    return getJsonOnce(url, timeoutMs);
+  }
 }
 
 function offline() {
@@ -91,10 +121,12 @@ async function roadMatrix(points) {
       if (json.code === 'Ok' && json.distances && json.durations) {
         const dist = json.distances.map((row) => row.map((m) => (m == null ? Infinity : m / 1000)));
         const dur = json.durations.map((row) => row.map((s) => (s == null ? Infinity : s / 60)));
+        noteResult('osrm', null);
         return { dist, dur, source: 'osrm' };
       }
+      noteResult('haversine', new Error('OSRM code=' + json.code));
     } catch (err) {
-      // silencioso: cae al fallback
+      noteResult('haversine', err);
     }
   }
   return haversineMatrix(points);
@@ -131,6 +163,7 @@ async function routeGeometry(points) {
       const json = await getJson(url);
       if (json.code === 'Ok' && json.routes && json.routes[0]) {
         const r = json.routes[0];
+        noteResult('osrm', null);
         return {
           polyline: r.geometry.coordinates.map(([lng, lat]) => [lat, lng]),
           distanceKm: Math.round((r.distance / 1000) * 100) / 100,
@@ -138,8 +171,9 @@ async function routeGeometry(points) {
           source: 'osrm',
         };
       }
+      noteResult('haversine', new Error('OSRM code=' + json.code));
     } catch (err) {
-      // fallback abajo
+      noteResult('haversine', err);
     }
   }
   // fallback: segmentos rectos y distancia haversine × factor
@@ -153,4 +187,4 @@ async function routeGeometry(points) {
   };
 }
 
-module.exports = { configure, getConfig, roadMatrix, routeGeometry, trafficMultiplier, haversineMatrix };
+module.exports = { configure, getConfig, getStatus, probe, roadMatrix, routeGeometry, trafficMultiplier, haversineMatrix };
