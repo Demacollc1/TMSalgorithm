@@ -45,7 +45,8 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .brand-icon { font-size: 26px; }
-.brand-name { color: #fff; font-weight: 700; font-size: 17px; letter-spacing: 0.3px; }
+.brand-name { color: #fff; font-weight: 700; font-size: 17px; letter-spacing: 0.8px; }
+.brand-name b { color: #d6293a; font-weight: 800; }
 .brand-sub { font-size: 11px; color: var(--sidebar-text); }
 nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
