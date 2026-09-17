@@ -32,6 +32,19 @@ const ZONES = {
  * @returns {{cargoType:'volumetrica'|'paqueteria', zone:keyof typeof ZONES}}
  */
 function classifyBulto(bulto) {
+  // 1) Tipo explícito leído del Container ID (la fuente más confiable):
+  //    tubos → parrilla; pallet/tanque → delantera-central.
+  switch (bulto.productType) {
+    case 'tubos':
+      return { cargoType: 'volumetrica', zone: 'parrilla' };
+    case 'pallet':
+    case 'tanque':
+    case 'volumetrica':
+      return { cargoType: 'volumetrica', zone: 'delantera-central' };
+    default:
+      break; // 'caja' o sin tipo → se decide por descripción y peso
+  }
+  // 2) Respaldo por descripción y peso (portal/API sin código estructurado).
   const text = [
     bulto.description || '',
     ...(bulto.items || []).map((i) => i.description || ''),
@@ -82,9 +95,12 @@ function buildLoadingPlan(route, orders) {
         address: order.address,
         customer: order.customer,
         containerId: b.containerId,
+        containerNum: b.containerNum || null,
         barcode: b.barcode || b.containerId,
         altCode: b.altCode || null,
         sourceCode: b.sourceCode || null,
+        productType: b.productType || null,
+        productCode: b.productCode || null,
         description: b.description || '',
         weightKg: Math.round((b.weightKg || 0) * 100) / 100,
         volumeM3: Math.round((b.volumeM3 || 0) * 10000) / 10000,

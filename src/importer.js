@@ -35,6 +35,62 @@ function extractContainerId(code, fallback) {
   return s || fallback || String(code);
 }
 
+// Tipos de producto volumétrico reconocidos por el segmento de tipo del
+// código (p. ej. TUB/TU3 = tubería, PAL = pallet, TAN = tanques).
+const VOL_TYPES = [
+  { re: /^TU/i, type: 'tubos', label: 'Tubería' },
+  { re: /^PAL/i, type: 'pallet', label: 'Pallet' },
+  { re: /^TAN/i, type: 'tanque', label: 'Tanque' },
+];
+
+/**
+ * Lee la estructura interna del Container ID. Hay dos familias:
+ *
+ *  - VOLUMÉTRICA (5 segmentos, con marcador `#`):
+ *      B87'#A'111838'TU3'1
+ *      bodega ' #marcador ' idÚnico(HHMMSS) ' TIPO ' cantidad
+ *      TIPO ∈ {PAL=Pallet, TU*=Tubos, TAN=Tanques}
+ *
+ *  - CAJA / paquetería (4 segmentos, sin `#`):
+ *      M0'121151'5.07'9   /   S1'094433'12.83'2
+ *      prefijo ' idÚnico(HHMMSS) ' pesoKg ' cantidad
+ *
+ * @returns {{containerNum:string|null, family:'volumetrica'|'caja',
+ *   productType:'tubos'|'pallet'|'tanque'|'caja', productCode:string|null,
+ *   codeWeightKg:number|null, qty:number|null}}
+ */
+function parseContainerCode(containerId) {
+  const out = {
+    containerNum: null,
+    family: 'caja',
+    productType: 'caja',
+    productCode: null,
+    codeWeightKg: null,
+    qty: null,
+  };
+  if (!containerId) return out;
+  const tokens = String(containerId).split("'").map((t) => t.trim());
+  // ID único = segmento de 6 dígitos (hora de generación HHMMSS)
+  const idTok = tokens.find((t) => /^\d{6}$/.test(t));
+  if (idTok) out.containerNum = idTok;
+  const last = tokens[tokens.length - 1];
+  if (/^\d+$/.test(last)) out.qty = Number(last);
+
+  if (tokens.some((t) => t.startsWith('#'))) {
+    out.family = 'volumetrica';
+    const typeTok = tokens.find((t) => VOL_TYPES.some((v) => v.re.test(t)));
+    const match = typeTok ? VOL_TYPES.find((v) => v.re.test(typeTok)) : null;
+    out.productType = match ? match.type : 'volumetrica';
+    out.productCode = typeTok || null;
+  } else {
+    out.family = 'caja';
+    out.productType = 'caja';
+    const wTok = tokens.find((t) => /^\d+\.\d+$/.test(t));
+    if (wTok) out.codeWeightKg = Number(wTok);
+  }
+  return out;
+}
+
 /**
  * Convierte el plan externo en pedidos listos para insertar.
  * No toca la base: devuelve los pedidos mapeados y advertencias.
@@ -68,9 +124,14 @@ function mapPlan(plan) {
       const weightKg = items.reduce((s, it) => s + it.weightKg, 0);
       const volumeM3 = items.reduce((s, it) => s + it.volumeCm3, 0) / 1e6;
       const containerId = extractContainerId(o.code, o.alt_code) || `BULTO-${ci + 1}-${bi + 1}`;
+      const parsed = parseContainerCode(containerId);
       const bulto = {
         containerId,
+        containerNum: parsed.containerNum, // ID de 6 dígitos, código de barras físico
         barcode: containerId,
+        productType: parsed.productType, // 'tubos'|'pallet'|'tanque'|'caja'
+        productCode: parsed.productCode, // TU3 / PAL / TAN
+        productQty: parsed.qty,
         altCode: o.alt_code || null,
         sourceCode: o.code || null,
         description:
@@ -117,4 +178,4 @@ function mapPlan(plan) {
   return { orders, warnings };
 }
 
-module.exports = { mapPlan, extractContainerId };
+module.exports = { mapPlan, extractContainerId, parseContainerCode };

@@ -10,7 +10,7 @@ const { haversineKm, centroid, interpolate } = require('../src/geo');
 const { quote, TARIFF } = require('../src/pricing');
 const { newTrackingCode, newApiKey } = require('../src/store');
 const { classifyBulto, buildLoadingPlan, loadingSummary } = require('../src/loading');
-const { mapPlan, extractContainerId } = require('../src/importer');
+const { mapPlan, extractContainerId, parseContainerCode } = require('../src/importer');
 const { claveAcceso, mod11 } = require('../src/billing');
 const fs = require('fs');
 const path = require('path');
@@ -441,6 +441,36 @@ test('extractContainerId: obtiene el Id. Contenedor del campo code', () => {
     "B87'#A'111838'TU3'1"
   );
   assert.strictEqual(extractContainerId(null, 'ALT-1'), 'ALT-1');
+});
+
+test('parseContainerCode: distingue volumétrico (PAL/TU/TAN) de caja', () => {
+  const pal = parseContainerCode("B87'#A'102607'PAL'1");
+  assert.strictEqual(pal.family, 'volumetrica');
+  assert.strictEqual(pal.productType, 'pallet');
+  assert.strictEqual(pal.containerNum, '102607');
+  assert.strictEqual(pal.qty, 1);
+
+  const tub = parseContainerCode("B87'#A'111838'TU3'1");
+  assert.strictEqual(tub.productType, 'tubos');
+  assert.strictEqual(tub.productCode, 'TU3');
+
+  const tan = parseContainerCode("B87'#A'090000'TAN'1");
+  assert.strictEqual(tan.productType, 'tanque');
+
+  const caja = parseContainerCode("M0'091739'0.20'3");
+  assert.strictEqual(caja.family, 'caja');
+  assert.strictEqual(caja.productType, 'caja');
+  assert.strictEqual(caja.containerNum, '091739');
+  assert.strictEqual(caja.codeWeightKg, 0.2);
+  assert.strictEqual(caja.qty, 3);
+});
+
+test('classifyBulto: usa el tipo del código (tubos→parrilla, pallet→delantera)', () => {
+  assert.strictEqual(classifyBulto({ productType: 'tubos', weightKg: 5 }).zone, 'parrilla');
+  assert.strictEqual(classifyBulto({ productType: 'pallet', weightKg: 5 }).zone, 'delantera-central');
+  assert.strictEqual(classifyBulto({ productType: 'tanque', weightKg: 5 }).zone, 'delantera-central');
+  // una caja liviana sin palabras pesadas va al cajón como paquetería
+  assert.strictEqual(classifyBulto({ productType: 'caja', weightKg: 3, description: 'Cerámica' }).zone, 'cajon');
 });
 
 section('\nRemolques plegables:');

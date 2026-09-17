@@ -468,7 +468,8 @@ async function handleApi(req, res, pathname, query) {
         const code = String(body.barcode).trim();
         // acepta container ID (etiqueta física), alt_code o código completo
         const matches = (b) =>
-          b.barcode === code || b.containerId === code || b.altCode === code || b.sourceCode === code;
+          b.barcode === code || b.containerId === code || b.containerNum === code ||
+          b.altCode === code || b.sourceCode === code;
         bulto = route.loadingPlan.find((b) => !b.loaded && matches(b));
         if (!bulto) {
           const yaCargado = route.loadingPlan.find(matches);
