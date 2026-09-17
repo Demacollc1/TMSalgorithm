@@ -69,22 +69,42 @@ document.getElementById('modal-backdrop').addEventListener('click', (e) => {
 });
 
 // ------------------------------------------------------------ carga de datos
+// Tolerante a fallos: si un endpoint falla (p. ej. un servidor viejo aún
+// corriendo que no lo conoce), se carga lo demás y se avisa sin dejar la
+// pantalla en blanco.
 async function refreshData() {
-  [state.orders, state.vehicles, state.drivers, state.routes, state.companies, state.trailers] = await Promise.all([
-    api('/orders'),
-    api('/vehicles'),
-    api('/drivers'),
-    api('/routes'),
-    api('/companies'),
-    api('/trailers'),
+  const load = async (key, path, fallback) => {
+    try {
+      state[key] = await api(path);
+    } catch (err) {
+      state[key] = state[key] && state[key].length ? state[key] : fallback;
+      console.warn(`No se pudo cargar ${path}:`, err.message);
+      state._loadErrors = state._loadErrors || [];
+      state._loadErrors.push(path);
+    }
+  };
+  state._loadErrors = [];
+  await Promise.all([
+    load('orders', '/orders', []),
+    load('vehicles', '/vehicles', []),
+    load('drivers', '/drivers', []),
+    load('routes', '/routes', []),
+    load('companies', '/companies', []),
+    load('trailers', '/trailers', []),
   ]);
-  if (!state.company) state.company = await api('/company');
+  if (!state.company) {
+    try { state.company = await api('/company'); }
+    catch { state.company = { name: 'Macotrans TMS', depot: { name: 'Depósito', lat: -2.13, lng: -79.88 } }; }
+  }
   if (!state.deposits.length) {
-    [state.deposits, state.fleets, state.schemas] = await Promise.all([
-      api('/deposits'),
-      api('/fleets'),
-      api('/schemas'),
+    await Promise.all([
+      load('deposits', '/deposits', []),
+      load('fleets', '/fleets', []),
+      load('schemas', '/schemas', []),
     ]);
+  }
+  if (state._loadErrors.length) {
+    toast('Servidor desactualizado o reiniciándose. Falló: ' + state._loadErrors.join(', ') + '. Reinicia el servidor.', true);
   }
 }
 
@@ -110,8 +130,8 @@ async function render() {
   try {
     await refreshData();
   } catch (err) {
-    toast('Error cargando datos: ' + err.message, true);
-    return;
+    toast('Error cargando datos: ' + err.message + ' — reinicia el servidor (Ctrl+C y npm start).', true);
+    // continúa: intenta pintar con lo que haya
   }
   const view = state.view;
   if (view === 'panel') renderPanel();
