@@ -158,6 +158,32 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
     }
+
+    /* ------- ubicación / segmentos ------- */
+    .loc-block { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .loc-title { display: block; font-weight: 800; font-size: 15px; margin-bottom: 10px; }
+    .seg { display: flex; gap: 4px; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 10px; }
+    .seg-btn { flex: 1; border: none; background: transparent; padding: 9px 4px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; }
+    .seg-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .loc-mode.hidden { display: none; }
+    .btn-link-plain { background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer; font-size: 13.5px; padding: 8px 0; display: block; }
+    /* ------- paquetes ------- */
+    .pkg-add { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
+    .pkg-add select { flex: 1; }
+    .pkg-add .btn { width: auto; white-space: nowrap; padding: 12px 14px; }
+    .item-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #fbfcfd; }
+    .item-card .item-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+    .item-card .item-x { background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; }
+    .item-card .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .item-card label { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+    .item-card .chk { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 8px; }
+    .box-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+    .box-opt { border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 4px; text-align: center; cursor: pointer; font-size: 12px; }
+    .box-opt.sel { border-color: var(--accent); background: #fdeef0; }
+    .box-opt b { display: block; font-size: 14px; }
+    .stop-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+    .stop-row .input { flex: 1; }
+    .stop-row .item-x { background: none; border: none; color: var(--danger); font-size: 18px; cursor: pointer; padding-top: 8px; }
   </style>
 </head>
 <body>
@@ -201,32 +227,81 @@
       <!-- ==================== CONTRATAR ==================== -->
       <div id="panel-contratar">
         <form id="form-flete">
-          <div class="field">
-            <label>¿Desde qué sector retiramos?</label>
-            <select id="f-origen" required></select>
-          </div>
-          <div class="field">
-            <label>¿En qué sector entregamos?</label>
-            <select id="f-destino" required></select>
-          </div>
-          <div class="field">
-            <label>Dirección de entrega</label>
-            <input class="input" id="f-direccion" placeholder="Calle y número" required />
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>Peso aprox. (kg)</label>
-              <input class="input" id="f-peso" type="number" min="1" value="50" required />
+          <!-- ORIGEN -->
+          <div class="loc-block">
+            <label class="loc-title">📤 ¿Desde dónde retiramos?</label>
+            <div class="seg" data-loc="origen">
+              <button type="button" class="seg-btn active" data-mode="sector">Ciudad › Zona</button>
+              <button type="button" class="seg-btn" data-mode="gps">Mi ubicación</button>
+              <button type="button" class="seg-btn" data-mode="punto">Dejar en punto</button>
             </div>
-            <div class="field">
-              <label>Volumen aprox. (m³)</label>
-              <input class="input" id="f-volumen" type="number" min="0" step="0.1" value="0.5" />
+            <div id="origen-gps" class="loc-mode hidden">
+              <button type="button" class="btn btn-outline" id="btn-gps-origen">📍 Usar mi ubicación GPS</button>
+              <p class="muted" id="origen-gps-info"></p>
+            </div>
+            <div id="origen-sector" class="loc-mode">
+              <div class="row">
+                <select id="o-ciudad" class="input"></select>
+                <select id="o-zona" class="input"></select>
+              </div>
+              <input class="input" id="o-direccion" placeholder="Calle y número de retiro" style="margin-top:10px" />
+            </div>
+            <div id="origen-punto" class="loc-mode hidden">
+              <select id="o-punto" class="input"></select>
             </div>
           </div>
-          <div class="row">
+
+          <!-- DESTINO -->
+          <div class="loc-block">
+            <label class="loc-title">📥 ¿A dónde entregamos?</label>
+            <div class="seg" data-loc="destino">
+              <button type="button" class="seg-btn active" data-mode="sector">Ciudad › Zona</button>
+              <button type="button" class="seg-btn" data-mode="gps">Mi ubicación</button>
+              <button type="button" class="seg-btn" data-mode="punto">Retiro en punto</button>
+            </div>
+            <div id="destino-sector" class="loc-mode">
+              <div class="row">
+                <select id="d-ciudad" class="input"></select>
+                <select id="d-zona" class="input"></select>
+              </div>
+              <input class="input" id="d-direccion" placeholder="Calle y número de entrega" style="margin-top:10px" />
+            </div>
+            <div id="destino-gps" class="loc-mode hidden">
+              <button type="button" class="btn btn-outline" id="btn-gps-destino">📍 Usar mi ubicación GPS</button>
+              <p class="muted" id="destino-gps-info"></p>
+            </div>
+            <div id="destino-punto" class="loc-mode hidden">
+              <select id="d-punto" class="input"></select>
+            </div>
+          </div>
+
+          <!-- PARADAS ADICIONALES -->
+          <div id="stops-wrap"></div>
+          <button type="button" class="btn btn-outline" id="btn-add-stop">＋ Agregar otra parada</button>
+
+          <!-- PAQUETES -->
+          <div class="loc-block" style="margin-top:18px">
+            <label class="loc-title">📦 ¿Qué vas a enviar?</label>
+            <div id="items-list"></div>
+            <div class="pkg-add">
+              <select id="pkg-type" class="input">
+                <option value="correspondencia">Correspondencia (sobres, planos livianos)</option>
+                <option value="caja">Caja estándar (A1–A6)</option>
+                <option value="pallet">Pallet</option>
+                <option value="tuberia">Tubería</option>
+                <option value="volumetrico">Volumétrico irregular (tanques, etc.)</option>
+              </select>
+              <button type="button" class="btn btn-accent" id="btn-add-item">Agregar paquete</button>
+            </div>
+            <button type="button" class="btn-link-plain" id="btn-tpl">⬇ Cargar varios por plantilla Excel/CSV</button>
+            <input type="file" id="tpl-file" accept=".csv,text/csv" class="hidden" />
+          </div>
+
+          <!-- SERVICIO / FECHA / CONTACTO -->
+          <div class="row" style="margin-top:8px">
             <div class="field">
               <label>Tipo de servicio</label>
-              <select id="f-servicio">
+              <select id="f-servicio" class="input">
                 <option value="normal">Normal (24–48 h)</option>
                 <option value="express">Express (mismo día)</option>
                 <option value="programado">Programado (−10%)</option>
@@ -330,17 +405,101 @@
       'Santa Leonor': [-2.1329, -79.8855], 'Malecón': [-2.1946, -79.8794],
     };
 
+    // Ciudad › Zona (sector) con coordenadas aproximadas
+    const CIUDADES = {
+      'Guayaquil': {
+        'Centro': [-2.1946, -79.8830], 'Urdesa': [-2.1681, -79.9053], 'Kennedy': [-2.1687, -79.8973],
+        'Alborada': [-2.1349, -79.9042], 'La Garzota': [-2.1417, -79.8942], 'Sauces': [-2.1207, -79.8969],
+        'Los Ceibos': [-2.1633, -79.9401], 'Miraflores': [-2.1789, -79.9182], 'Vía a la Costa': [-2.1901, -79.9885],
+        'Vía Daule': [-2.1130, -79.9260], 'Sur - Centenario': [-2.2290, -79.8952], 'Sur - Guasmo': [-2.2513, -79.8890],
+        'Terminal Terrestre': [-2.1408, -79.8813], 'Mapasingue': [-2.1500, -79.9260], 'Bastión Popular': [-2.0930, -79.9100],
+        'Mucho Lote': [-2.0990, -79.8930], 'Santa Leonor': [-2.1329, -79.8855],
+      },
+      'Samborondón': { 'La Puntilla': [-2.1327, -79.8646], 'Entre Ríos': [-2.1020, -79.8560], 'Centro Samborondón': [-1.9620, -79.7290] },
+      'Durán': { 'Centro Durán': [-2.1794, -79.8206], 'El Recreo': [-2.1650, -79.8350] },
+      'Daule': { 'Centro Daule': [-1.8620, -79.9770] },
+      'Portoviejo': { 'Centro Portoviejo': [-1.0546, -80.4545] },
+      'Ambato': { 'Izamba': [-1.2170, -78.5928], 'Centro Ambato': [-1.2410, -78.6190] },
+    };
+
     const $ = (id) => document.getElementById(id);
     let lastQuote = null;
+    let items = [];      // paquetes agregados
+    let extraStops = []; // paradas adicionales
+    let CATALOG = null, POINTS = [];
+    const loc = { origen: { mode: 'sector', coord: null }, destino: { mode: 'sector', coord: null } };
 
-    // pobla selects y fecha mínima
-    const opts = Object.keys(COMUNAS).sort().map((c) => `<option>${c}</option>`).join('');
-    $('f-origen').innerHTML = opts;
-    $('f-destino').innerHTML = opts;
-    $('f-destino').selectedIndex = 1;
     const today = new Date().toISOString().slice(0, 10);
-    $('f-fecha').value = today;
-    $('f-fecha').min = today;
+    $('f-fecha').value = today; $('f-fecha').min = today;
+
+    // carga catálogo y puntos
+    (async () => {
+      try {
+        CATALOG = await (await fetch('/api/public/v1/catalog')).json().then((j) => j.data);
+        POINTS = await (await fetch('/api/public/v1/points')).json().then((j) => j.data);
+      } catch {}
+      fillCity($('o-ciudad'), $('o-zona'));
+      fillCity($('d-ciudad'), $('d-zona'), 1);
+      const popts = POINTS.map((p) => `<option value="${p.id}">${p.name} · ${p.city}</option>`).join('');
+      $('o-punto').innerHTML = popts; $('d-punto').innerHTML = popts;
+    })();
+
+    function fillCity(citySel, zoneSel, zoneIdx) {
+      citySel.innerHTML = Object.keys(CIUDADES).map((c) => `<option>${c}</option>`).join('');
+      const fillZones = () => {
+        const zones = CIUDADES[citySel.value];
+        zoneSel.innerHTML = Object.keys(zones).map((z) => `<option>${z}</option>`).join('');
+        if (zoneIdx) zoneSel.selectedIndex = Math.min(zoneIdx, zoneSel.options.length - 1);
+      };
+      citySel.onchange = fillZones;
+      fillZones();
+    }
+
+    // segmentos origen/destino
+    document.querySelectorAll('.seg').forEach((seg) => {
+      const which = seg.dataset.loc;
+      seg.querySelectorAll('.seg-btn').forEach((btn) => {
+        btn.onclick = () => {
+          seg.querySelectorAll('.seg-btn').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          loc[which].mode = btn.dataset.mode;
+          ['gps', 'sector', 'punto'].forEach((m) => $(which + '-' + m).classList.toggle('hidden', m !== btn.dataset.mode));
+        };
+      });
+    });
+
+    function gpsFor(which, infoId) {
+      if (!navigator.geolocation) return showError('flete-error', 'Tu navegador no permite GPS');
+      $(infoId).textContent = 'Obteniendo ubicación…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          loc[which].coord = { lat: pos.coords.latitude, lng: pos.coords.longitude, commune: 'Mi ubicación GPS' };
+          $(infoId).textContent = `📍 Ubicación fijada (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
+        },
+        () => ($(infoId).textContent = '⚠️ No se pudo obtener el GPS; usa Ciudad › Zona')
+      );
+    }
+    $('btn-gps-origen').onclick = () => gpsFor('origen', 'origen-gps-info');
+    $('btn-gps-destino').onclick = () => gpsFor('destino', 'destino-gps-info');
+
+    // resuelve coordenadas de origen/destino según el modo elegido
+    function resolveLoc(which) {
+      const m = loc[which].mode;
+      if (m === 'gps') {
+        if (!loc[which].coord) throw new Error(`Fija la ubicación GPS de ${which === 'origen' ? 'retiro' : 'entrega'}`);
+        return { ...loc[which].coord, address: 'Ubicación GPS' };
+      }
+      if (m === 'punto') {
+        const sel = $(which[0] + '-punto');
+        const p = POINTS.find((x) => x.id === sel.value);
+        if (!p) throw new Error('Selecciona un punto Macotrans');
+        return { lat: p.lat, lng: p.lng, commune: p.city, address: p.name, pointId: p.id };
+      }
+      const city = $(which[0] + '-ciudad').value, zone = $(which[0] + '-zona').value;
+      const [lat, lng] = CIUDADES[city][zone];
+      const dir = $(which[0] + '-direccion').value.trim();
+      return { lat, lng, commune: zone, address: `${dir ? dir + ', ' : ''}${zone}, ${city}` };
+    }
 
     // tabs
     function showTab(name) {
@@ -354,27 +513,147 @@
     $('nav-contratar').onclick = () => showTab('contratar');
     $('nav-seguimiento').onclick = () => showTab('seguimiento');
 
-    function coords(sel) {
-      const [lat, lng] = COMUNAS[sel.value];
-      return { lat, lng, commune: sel.value };
+    // ---------- paradas adicionales ----------
+    $('btn-add-stop').onclick = () => {
+      const idx = extraStops.length;
+      extraStops.push({ city: Object.keys(CIUDADES)[0] });
+      const div = document.createElement('div');
+      div.className = 'stop-row';
+      const cityOpts = Object.keys(CIUDADES).map((c) => `<option>${c}</option>`).join('');
+      div.innerHTML = `<select class="input st-city">${cityOpts}</select><select class="input st-zone"></select><button type="button" class="item-x">✕</button>`;
+      const citySel = div.querySelector('.st-city'), zoneSel = div.querySelector('.st-zone');
+      const fz = () => (zoneSel.innerHTML = Object.keys(CIUDADES[citySel.value]).map((z) => `<option>${z}</option>`).join(''));
+      citySel.onchange = fz; fz();
+      div.querySelector('.item-x').onclick = () => { div.remove(); extraStops[idx] = null; };
+      div._get = () => { const [lat, lng] = CIUDADES[citySel.value][zoneSel.value]; return { lat, lng, commune: zoneSel.value }; };
+      extraStops[idx] = div;
+      $('stops-wrap').appendChild(div);
+    };
+    function stopsPayload() {
+      return extraStops.filter(Boolean).map((d) => d._get());
     }
+
+    // ---------- paquetes ----------
+    function itemFields(type) {
+      if (type === 'correspondencia') return `<div class="grid3"><div><label>Cantidad</label><input class="input i-qty" type="number" min="1" value="1"/></div></div>`;
+      if (type === 'caja') {
+        const boxes = (CATALOG ? CATALOG.cajas : []).map((b) => `<div class="box-opt" data-size="${b.code}"><b>${b.code}</b>${b.l}×${b.w}×${b.h}cm<br>≤${b.maxKg}kg</div>`).join('');
+        return `<div class="box-grid i-boxes">${boxes}</div>
+          <div class="grid3"><div><label>Cantidad</label><input class="input i-qty" type="number" min="1" value="1"/></div></div>
+          <label class="chk"><input type="checkbox" class="i-heavy"/> Pesa más de 50 kg</label>
+          <div class="i-heavy-kg hidden"><label>Peso real (kg)</label><input class="input i-kg" type="number" min="50" value="60"/></div>`;
+      }
+      if (type === 'pallet') return `<div class="grid3">
+          <div><label>Base</label><select class="input i-base"><option>1x1</option><option>1.20x0.80</option><option>1.20x1</option></select></div>
+          <div><label>Cantidad</label><input class="input i-qty" type="number" min="1" value="1"/></div>
+          <div><label>Peso (kg)</label><input class="input i-kg" type="number" min="1" value="300"/></div>
+        </div><label class="chk"><input type="checkbox" class="i-stack" checked/> Se puede apilar encima</label>`;
+      if (type === 'tuberia') return `<div class="grid3">
+          <div><label>Cantidad</label><input class="input i-qty" type="number" min="1" value="1"/></div>
+          <div><label>Diámetro (mm)</label><input class="input i-diam" type="number" min="1" value="50"/></div>
+          <div><label>Largo (m)</label><input class="input i-len" type="number" min="0.1" step="0.1" value="6"/></div>
+        </div>`;
+      return `<div class="grid3">
+          <div><label>Largo (cm)</label><input class="input i-l" type="number" min="1" value="120"/></div>
+          <div><label>Ancho (cm)</label><input class="input i-w" type="number" min="1" value="80"/></div>
+          <div><label>Alto (cm)</label><input class="input i-h" type="number" min="1" value="100"/></div>
+        </div>
+        <div class="grid3"><div><label>Cantidad</label><input class="input i-qty" type="number" min="1" value="1"/></div><div><label>Peso (kg) opc.</label><input class="input i-kg" type="number" min="0" value="0"/></div></div>
+        <label class="chk"><input type="checkbox" class="i-stack" checked/> Se puede apilar encima</label>`;
+    }
+    const TYPE_LABEL = { correspondencia: 'Correspondencia', caja: 'Caja estándar', pallet: 'Pallet', tuberia: 'Tubería', volumetrico: 'Volumétrico' };
+
+    $('btn-add-item').onclick = () => addItemCard($('pkg-type').value);
+    function addItemCard(type, preset) {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+      card.dataset.type = type;
+      card.innerHTML = `<div class="item-head"><span>${TYPE_LABEL[type]}</span><button type="button" class="item-x">✕</button></div>${itemFields(type)}`;
+      card.querySelector('.item-x').onclick = () => card.remove();
+      if (type === 'caja') {
+        const opts = card.querySelectorAll('.box-opt');
+        opts.forEach((o) => (o.onclick = () => { opts.forEach((x) => x.classList.remove('sel')); o.classList.add('sel'); }));
+        opts[3] && opts[3].classList.add('sel'); // A4 por defecto
+        const heavy = card.querySelector('.i-heavy');
+        heavy.onchange = () => card.querySelector('.i-heavy-kg').classList.toggle('hidden', !heavy.checked);
+      }
+      if (preset) applyPreset(card, type, preset);
+      $('items-list').appendChild(card);
+    }
+
+    function readItemCard(card) {
+      const type = card.dataset.type;
+      const qty = Number(card.querySelector('.i-qty')?.value) || 1;
+      if (type === 'correspondencia') return { type, qty };
+      if (type === 'caja') {
+        const sel = card.querySelector('.box-opt.sel');
+        const heavy = card.querySelector('.i-heavy').checked;
+        return { type, qty, size: sel ? sel.dataset.size : 'A4', heavy, weightKg: heavy ? Number(card.querySelector('.i-kg').value) : undefined };
+      }
+      if (type === 'pallet') return { type, qty, base: card.querySelector('.i-base').value, weightKg: Number(card.querySelector('.i-kg').value), stackable: card.querySelector('.i-stack').checked };
+      if (type === 'tuberia') return { type, qty, diameterMm: Number(card.querySelector('.i-diam').value), lengthM: Number(card.querySelector('.i-len').value) };
+      return { type, qty, lengthCm: Number(card.querySelector('.i-l').value), widthCm: Number(card.querySelector('.i-w').value), heightCm: Number(card.querySelector('.i-h').value), weightKg: Number(card.querySelector('.i-kg').value) || undefined, stackable: card.querySelector('.i-stack').checked };
+    }
+    function itemsPayload() {
+      return [...$('items-list').querySelectorAll('.item-card')].map(readItemCard);
+    }
+
+    // ---------- plantilla CSV/Excel ----------
+    $('btn-tpl').onclick = () => {
+      if (confirm('¿Descargar la plantilla? Ábrela en Excel, llénala y vuelve a “Cargar por plantilla” para subirla.')) {
+        window.location = '/plantilla-paquetes.csv';
+      } else {
+        $('tpl-file').click();
+      }
+    };
+    $('tpl-file').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const rows = reader.result.split(/\r?\n/).filter((r) => r.trim());
+          const head = rows.shift().split(',').map((h) => h.trim());
+          let n = 0;
+          for (const line of rows) {
+            const c = line.split(',');
+            const o = {}; head.forEach((h, i) => (o[h] = (c[i] || '').trim()));
+            if (!o.tipo) continue;
+            addItemCard(o.tipo, o); n++;
+          }
+          showError('flete-error', '');
+          alert(`${n} paquete(s) cargados de la plantilla.`);
+        } catch { showError('flete-error', 'No se pudo leer la plantilla'); }
+      };
+      reader.readAsText(file);
+    };
+    function applyPreset(card, type, o) {
+      const set = (sel, v) => { const el = card.querySelector(sel); if (el && v !== '' && v != null) el.value = v; };
+      set('.i-qty', o.cantidad);
+      if (type === 'caja' && o.tamano_caja) {
+        card.querySelectorAll('.box-opt').forEach((x) => x.classList.toggle('sel', x.dataset.size === o.tamano_caja.toUpperCase()));
+        if (o.peso_kg) { card.querySelector('.i-heavy').checked = true; card.querySelector('.i-heavy-kg').classList.remove('hidden'); set('.i-kg', o.peso_kg); }
+      }
+      if (type === 'pallet') { set('.i-base', o.base_pallet); set('.i-kg', o.peso_kg); if (card.querySelector('.i-stack')) card.querySelector('.i-stack').checked = !/^no/i.test(o.apilable || ''); }
+      if (type === 'tuberia') { set('.i-diam', o.diametro_mm); set('.i-len', o.largo_m); }
+      if (type === 'volumetrico') { set('.i-l', o.largo_cm); set('.i-w', o.ancho_cm); set('.i-h', o.alto_cm); set('.i-kg', o.peso_kg); if (card.querySelector('.i-stack')) card.querySelector('.i-stack').checked = !/^no/i.test(o.apilable || ''); }
+    }
+
+    // arranca con una caja de ejemplo
+    addItemCard('caja');
+
     function payloadFromForm() {
+      const items = itemsPayload();
+      if (!items.length) throw new Error('Agrega al menos un paquete');
       return {
-        origin: coords($('f-origen')),
-        destination: {
-          ...coords($('f-destino')),
-          address: $('f-direccion').value.trim() + ', ' + $('f-destino').value,
-        },
-        weightKg: Number($('f-peso').value) || 0,
-        volumeM3: Number($('f-volumen').value) || 0,
+        origin: resolveLoc('origen'),
+        destination: resolveLoc('destino'),
+        stops: stopsPayload(),
+        items,
         service: $('f-servicio').value,
         date: $('f-fecha').value,
-        contact: {
-          name: $('f-nombre').value.trim(),
-          phone: $('f-telefono').value.trim(),
-          email: $('f-email').value.trim(),
-        },
-        notes: 'Retiro en sector: ' + $('f-origen').value,
+        contact: { name: $('f-nombre').value.trim(), phone: $('f-telefono').value.trim(), email: $('f-email').value.trim() },
+        notes: '',
       };
     }
     function showError(id, msg) {
@@ -388,7 +667,8 @@
     $('form-flete').addEventListener('submit', async (e) => {
       e.preventDefault();
       showError('flete-error', '');
-      const p = payloadFromForm();
+      let p;
+      try { p = payloadFromForm(); } catch (err) { return showError('flete-error', err.message); }
       try {
         const res = await fetch('/api/public/v1/quote', {
           method: 'POST',
@@ -399,8 +679,9 @@
         if (!res.ok) throw new Error(json.error || 'No se pudo cotizar');
         lastQuote = json.data;
         $('quote-price').textContent = fmtUSD(lastQuote.priceUsd);
+        const extra = lastQuote.stops ? ` · ${lastQuote.stops} parada(s) extra` : '';
         $('quote-detail').textContent =
-          `${lastQuote.distanceKm} km aprox · servicio ${p.service} · IVA incluido`;
+          `${lastQuote.distanceKm} km · ${lastQuote.billableKg} kg facturables · servicio ${p.service}${extra} · IVA incluido`;
         $('quote-result').classList.remove('hidden');
         $('btn-confirmar').classList.remove('hidden');
         $('btn-cotizar').textContent = 'Recotizar';
@@ -411,12 +692,14 @@
 
     $('btn-confirmar').addEventListener('click', async () => {
       showError('flete-error', '');
+      let payload;
+      try { payload = payloadFromForm(); } catch (err) { return showError('flete-error', err.message); }
       $('btn-confirmar').disabled = true;
       try {
         const res = await fetch('/api/public/v1/freights', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payloadFromForm()),
+          body: JSON.stringify(payload),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'No se pudo contratar');

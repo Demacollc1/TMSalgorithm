@@ -246,6 +246,63 @@ test('quote: valida coordenadas', () => {
   assert.throws(() => quote({ origin: STGO, destination: { lat: 'x' }, weightKg: 1 }));
 });
 
+console.log('\nTipos de paquete y peso facturable:');
+
+const { measureItems, measureItem, catalog } = require('../src/packages');
+const { quoteItems } = require('../src/pricing');
+
+test('caja: peso volumétrico vs real', () => {
+  const liviana = measureItem({ type: 'caja', size: 'A4', qty: 1 });
+  assert.ok(liviana.billableKg > 0);
+  const pesada = measureItem({ type: 'caja', size: 'A4', qty: 1, heavy: true, weightKg: 80 });
+  assert.strictEqual(pesada.weightKg, 80);
+  assert.ok(pesada.billableKg >= 80, 'una caja pesada factura por su peso real');
+});
+
+test('correspondencia es liviana y barata', () => {
+  const m = measureItem({ type: 'correspondencia', qty: 3 });
+  assert.ok(m.weightKg <= 2 && m.volumeM3 < 0.01);
+});
+
+test('pallet: requiere peso y penaliza no apilable', () => {
+  assert.throws(() => measureItem({ type: 'pallet', base: '1x1', qty: 1 }));
+  const apila = measureItem({ type: 'pallet', base: '1x1', qty: 1, weightKg: 500, stackable: true });
+  const noApila = measureItem({ type: 'pallet', base: '1x1', qty: 1, weightKg: 500, stackable: false });
+  assert.ok(noApila.volumeM3 > apila.volumeM3, 'el no apilable ocupa más volumen');
+});
+
+test('tuberia marca ítem largo (parrilla)', () => {
+  const m = measureItems([{ type: 'tuberia', qty: 10, diameterMm: 50, lengthM: 6 }]);
+  assert.ok(m.hasLongItems);
+});
+
+test('volumétrico exige dimensiones', () => {
+  assert.throws(() => measureItem({ type: 'volumetrico', qty: 1, lengthCm: 0, widthCm: 10, heightCm: 10 }));
+  const m = measureItem({ type: 'volumetrico', qty: 1, lengthCm: 100, widthCm: 100, heightCm: 100 });
+  assert.ok(m.volumeM3 >= 1);
+});
+
+test('catálogo expone cajas A1..A6 con dimensiones', () => {
+  const c = catalog();
+  assert.strictEqual(c.cajas.length, 6);
+  assert.ok(c.cajas.every((b) => b.l && b.w && b.h && b.maxKg === 50));
+});
+
+test('quoteItems: multi-parada suma recargo y distancia encadenada', () => {
+  const base = { origin: { lat: -2.15, lng: -79.88 }, destination: { lat: -2.20, lng: -79.90 }, items: [{ type: 'caja', size: 'A4', qty: 2 }] };
+  const sinParada = quoteItems(base);
+  const conParada = quoteItems({ ...base, stops: [{ lat: -2.10, lng: -79.92 }] });
+  assert.strictEqual(conParada.stops, 1);
+  assert.ok(conParada.breakdown.paradasAdicionales > 0);
+  assert.ok(conParada.priceUsd > sinParada.priceUsd);
+  assert.strictEqual(conParada.currency, 'USD');
+});
+
+test('quoteItems: tubería agrega recargo de carga larga', () => {
+  const q = quoteItems({ origin: { lat: -2.15, lng: -79.88 }, destination: { lat: -2.20, lng: -79.90 }, items: [{ type: 'tuberia', qty: 5, diameterMm: 50, lengthM: 6 }] });
+  assert.ok(q.breakdown.cargaLarga > 0);
+});
+
 console.log('\nIdentificadores:');
 
 test('trackingCode: formato MAC-XXXXXX y sin colisiones evidentes', () => {

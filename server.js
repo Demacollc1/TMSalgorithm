@@ -7,7 +7,8 @@ const { URL } = require('url');
 
 const { db, nextId, init, save, reset, logEvent, logIntegration, newApiKey, newTrackingCode } = require('./src/store');
 const { optimize } = require('./src/optimizer');
-const { quote } = require('./src/pricing');
+const { quote, quoteItems } = require('./src/pricing');
+const packages = require('./src/packages');
 const { mapPlan } = require('./src/importer');
 const { buildLoadingPlan, loadingSummary } = require('./src/loading');
 const { buildRouteDocuments } = require('./src/billing');
@@ -1236,11 +1237,23 @@ async function handlePublicApi(req, res, pathname) {
   const arg = parts[4];
   const method = req.method;
 
-  // POST /api/public/v1/quote — cotiza un flete
+  // GET /api/public/v1/catalog — tipos de paquete y dimensiones
+  if (resource === 'catalog' && method === 'GET') {
+    return sendJSON(res, 200, { data: packages.catalog() });
+  }
+
+  // GET /api/public/v1/points — puntos Macotrans donde dejar/retirar
+  if (resource === 'points' && method === 'GET') {
+    const pts = db.deposits.map((d) => ({ id: d.id, name: d.name, city: d.city, lat: d.lat, lng: d.lng }));
+    return sendJSON(res, 200, { data: pts });
+  }
+
+  // POST /api/public/v1/quote — cotiza un flete (por peso/vol o por ítems)
   if (resource === 'quote' && method === 'POST') {
     const body = await readBody(req);
     try {
-      return sendJSON(res, 200, { data: quote(body) });
+      const data = Array.isArray(body.items) && body.items.length ? quoteItems(body) : quote(body);
+      return sendJSON(res, 200, { data });
     } catch (err) {
       return badRequest(res, err.message);
     }
@@ -1253,18 +1266,32 @@ async function handlePublicApi(req, res, pathname) {
       return badRequest(res, 'Se requiere contacto con nombre y teléfono');
     }
     if (!body.destination) return badRequest(res, 'Falta el destino del flete');
+    const origin = body.origin || db.company.depot;
+    const stops = Array.isArray(body.stops) ? body.stops : [];
+    const byItems = Array.isArray(body.items) && body.items.length;
     let quoted;
     try {
-      quoted = quote({
-        origin: body.origin || db.company.depot,
-        destination: body.destination,
-        weightKg: body.weightKg,
-        volumeM3: body.volumeM3,
-        service: body.service,
-      });
+      quoted = byItems
+        ? quoteItems({ origin, destination: body.destination, stops, items: body.items, service: body.service })
+        : quote({ origin, destination: body.destination, weightKg: body.weightKg, volumeM3: body.volumeM3, service: body.service });
     } catch (err) {
       return badRequest(res, err.message);
     }
+    // convierte cada ítem cotizado en un bulto con su container ID
+    const bultos = byItems
+      ? quoted.items.flatMap((m, mi) =>
+          Array.from({ length: m.qty }, (_, k) => ({
+            containerId: `PORTAL-${Date.now().toString(36).toUpperCase()}-${mi + 1}-${k + 1}`,
+            barcode: `PORTAL-${Date.now().toString(36).toUpperCase()}-${mi + 1}-${k + 1}`,
+            description: m.label,
+            weightKg: Math.round((m.weightKg / m.qty) * 100) / 100,
+            volumeM3: Math.round((m.volumeM3 / m.qty) * 10000) / 10000,
+            cargoType: ['pallet', 'volumetrico', 'tuberia'].includes(m.type) ? 'volumetrica' : 'paqueteria',
+            zone: m.type === 'tuberia' ? 'parrilla' : m.type === 'pallet' ? 'delantera-central' : 'cajon',
+            items: [],
+          }))
+        )
+      : [];
     const portalCompany = db.companies.find((c) => c.type === 'portal');
     let order;
     try {
@@ -1281,11 +1308,13 @@ async function handlePublicApi(req, res, pathname) {
           commune: body.destination.commune || '',
           lat: body.destination.lat,
           lng: body.destination.lng,
-          weightKg: body.weightKg,
-          volumeM3: body.volumeM3,
+          weightKg: quoted.weightKg != null ? quoted.weightKg : body.weightKg,
+          volumeM3: quoted.volumeM3 != null ? quoted.volumeM3 : body.volumeM3,
           date: body.date,
-          notes: body.notes || '',
+          notes: (body.notes || '') + (stops.length ? ` · ${stops.length} parada(s) adicional(es)` : ''),
           price: quoted.priceUsd,
+          bultos,
+          extraStops: stops,
         },
         { companyId: portalCompany ? portalCompany.id : null, source: 'portal' }
       );
@@ -1301,6 +1330,7 @@ async function handlePublicApi(req, res, pathname) {
         status: order.status,
         priceUsd: quoted.priceUsd,
         currency: 'USD',
+        billableKg: quoted.billableKg,
         distanceKm: quoted.distanceKm,
         date: order.date,
       },

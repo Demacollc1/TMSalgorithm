@@ -208,7 +208,8 @@ src/loading.js       Módulo de carga: clasificación de bultos y secuencia fís
 src/importer.js      Importador de planes (formato Driv.in del ERP)
 src/billing.js       Guías y facturas electrónicas (clave de acceso módulo 11)
 src/printview.js     Formatos de impresión de ruta (guía + factura)
-src/pricing.js       Motor de cotización de fletes (USD)
+src/pricing.js       Motor de cotización de fletes (USD, por peso/vol o por ítems)
+src/packages.js      Catálogo de tipos de paquete y peso facturable
 src/simulator.js     Simulador GPS (mueve la flota, cierra paradas, emite POD)
 src/store.js         Almacén en memoria con persistencia JSON, tenants y seed
 src/webhooks.js      Webhooks globales + webhook por empresa cliente
