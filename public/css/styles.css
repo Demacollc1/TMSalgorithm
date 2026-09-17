@@ -138,6 +138,24 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .badge.recoleccion { background: #fff0f5; color: #c2367e; }
 .badge.transbordo { background: #efe7ff; color: #6d3fd4; }
 .badge.nodriza { background: #101a2b; color: #ffd166; }
+.badge.propuesta { background: #fff0f5; color: #c2367e; }
+.badge.en_sitio { background: #e0f2ff; color: #0b6bab; }
+.badge.entrega_parcial { background: #fff4e0; color: #b06f00; }
+.badge.devuelto, .badge.rechazado, .badge.no_apto { background: #fdebec; color: #e5484d; }
+.badge.cargada { background: #e2f7ef; color: #067a5b; }
+.badge.en_carga { background: #e7efff; color: #1747c4; }
+
+/* --------------------------------------------------- módulo de carga */
+.load-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.load-phase { margin: 16px 0 2px; font-size: 13.5px; color: var(--text); }
+.load-table td, .load-table th { padding: 7px 10px; }
+.load-table .row-loaded { background: #f2fbf7; }
+.load-table .row-loaded td { color: #6a7a72; }
+.scan-box { display: flex; align-items: center; gap: 8px; background: #101a2b; border-radius: 10px; padding: 8px 12px; }
+.scan-box .scan-icon { font-size: 20px; }
+.scan-box .input { background: #1c2942; border-color: #2c3d5f; color: #fff; font-family: ui-monospace, monospace; }
+.scan-box .input::placeholder { color: #8fa2c0; }
+.load-done { background: #e2f7ef; border: 1px solid #bfe3d5; border-radius: 10px; padding: 12px 14px; font-size: 13.5px; }
 
 /* --------------------------------------------------- botones e inputs */
 .btn {

@@ -106,6 +106,7 @@ async function render() {
   if (view === 'pedidos') renderOrders();
   if (view === 'flota') renderFleet();
   if (view === 'planificacion') renderPlanning();
+  if (view === 'carga') renderLoading();
   if (view === 'monitoreo') renderMonitoring();
   if (view === 'empresas') renderCompanies();
   if (view === 'webhooks') renderWebhooks();
@@ -285,6 +286,34 @@ window.showPod = (id) => {
 
 document.getElementById('filter-status').addEventListener('change', renderOrders);
 
+document.getElementById('btn-import-plan').addEventListener('click', () => {
+  openModal('Importar plan de entregas (JSON)', `
+    <p class="muted">Pega el JSON del plan que genera tu API (formato <code>{ "clients": [...] }</code>, el mismo que se envía a Driv.in). Cada <em>order</em> se registra como un bulto con su código de barras (<code>alt_code</code>).</p>
+    <textarea class="input" id="imp-json" rows="12" style="font-family:ui-monospace,monospace;font-size:12px" placeholder='{ "clients": [ { "code": 537, "address": "...", "lat": "-2.15", "lng": "-79.88", "orders": [...] } ] }'></textarea>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="imp-run">Importar</button>
+    </div>`);
+  document.getElementById('imp-run').onclick = async () => {
+    let plan;
+    try {
+      plan = JSON.parse(document.getElementById('imp-json').value);
+    } catch {
+      return toast('El texto no es JSON válido (usa comillas dobles en claves y textos)', true);
+    }
+    try {
+      const result = await api('/import', { method: 'POST', body: { plan } });
+      closeModal();
+      const bultos = result.orders.reduce((s, o) => s + o.bultos, 0);
+      toast(`Plan importado: ${result.orders.length} entregas, ${bultos} bultos`);
+      if (result.warnings.length) toast(result.warnings.join(' · '), true);
+      render();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  };
+});
+
 // ============================================================ FLOTA
 function renderFleet() {
   document.querySelector('#vehicles-table tbody').innerHTML = state.vehicles
@@ -294,11 +323,11 @@ function renderFleet() {
       <tr>
         <td><strong>${esc(v.plate)}</strong></td>
         <td>${esc(v.name)} ${v.isNodriza ? badge('nodriza', 'nodriza') : ''}</td>
-        <td>${esc(v.type)}</td>
+        <td>${esc(v.type)}${v.hasParrilla ? ' ▤' : ''}</td>
         <td>${v.capacityKg}</td>
         <td>${v.capacityM3}</td>
         <td>${esc(driver ? driver.name : '—')}</td>
-        <td>${badge(v.status)}</td>
+        <td>${v.apto === false ? `<span class="badge no_entregado" title="${esc(v.aptoNotes || '')}">⛔ no apto</span>` : badge(v.status)}</td>
         <td>
           <button class="btn-link" onclick="editVehicle('${v.id}')">Editar</button>
           <button class="btn-link danger" onclick="deleteVehicle('${v.id}')">Eliminar</button>
@@ -340,6 +369,9 @@ function vehicleForm(v = {}) {
       <label class="field"><span>Capacidad (kg)</span><input class="input" id="v-kg" type="number" value="${v.capacityKg ?? 1000}"/></label>
       <label class="field"><span>Capacidad (m³)</span><input class="input" id="v-m3" type="number" value="${v.capacityM3 ?? 8}"/></label>
       <label class="check full"><input type="checkbox" id="v-nodriza" ${v.isNodriza ? 'checked' : ''}/><span>Es madre nodriza (transbordo)</span></label>
+      <label class="check full"><input type="checkbox" id="v-parrilla" ${v.hasParrilla ? 'checked' : ''}/><span>Tiene parrilla / puede llevar tubos arriba</span></label>
+      <label class="check full"><input type="checkbox" id="v-apto" ${v.apto !== false ? 'checked' : ''}/><span><strong>Apto para viajar</strong> (matrícula, revisión y mantenimiento al día)</span></label>
+      <label class="field full"><span>Observaciones de aptitud</span><input class="input" id="v-apto-notes" value="${esc(v.aptoNotes || '')}" placeholder="Ej.: en mantenimiento, sin revisión vehicular"/></label>
     </div>
     <div class="actions">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
@@ -356,6 +388,9 @@ function readVehicleForm() {
     capacityKg: Number(document.getElementById('v-kg').value),
     capacityM3: Number(document.getElementById('v-m3').value),
     isNodriza: document.getElementById('v-nodriza').checked,
+    hasParrilla: document.getElementById('v-parrilla').checked,
+    apto: document.getElementById('v-apto').checked,
+    aptoNotes: document.getElementById('v-apto-notes').value.trim(),
   };
 }
 
@@ -508,23 +543,26 @@ function renderPlanning() {
     `${pending.length} pedidos pendientes serán considerados (${pending.filter((o) => o.type === 'recoleccion').length} recolecciones).`;
 
   document.getElementById('opt-vehicles').innerHTML = state.vehicles
-    .map(
-      (v) => `
-      <label class="check">
-        <input type="checkbox" class="opt-veh" value="${v.id}" ${v.status === 'disponible' ? 'checked' : 'disabled'} />
-        <span>${esc(v.plate)} · ${esc(v.name)} (${v.capacityKg} kg)${v.isNodriza ? ' 🚛 nodriza' : ''}</span>
-      </label>`
-    )
+    .map((v) => {
+      const usable = v.status === 'disponible' && v.apto !== false;
+      return `
+      <label class="check" ${!usable ? 'style="opacity:0.55"' : ''}>
+        <input type="checkbox" class="opt-veh" value="${v.id}" ${usable ? 'checked' : 'disabled'} />
+        <span>${esc(v.plate)} · ${esc(v.name)} (${v.capacityKg} kg)${v.isNodriza ? ' 🚛 nodriza' : ''}${v.hasParrilla ? ' ▤ parrilla' : ''}${v.apto === false ? ` — ⛔ no apto${v.aptoNotes ? ': ' + esc(v.aptoNotes) : ''}` : ''}</span>
+      </label>`;
+    })
     .join('');
 
   const map = ensureMap('plan', 'map-plan');
   if (map) setTimeout(() => map.invalidateSize(), 50);
   depotMarker(map);
-  const planned = state.routes.filter((r) => r.status === 'planificada');
-  drawRoutesOnMap(map, 'plan', planned);
-  renderRoutesList(document.getElementById('routes-list'), planned, { actions: true });
-  document.getElementById('opt-summary').innerHTML = planned.length
-    ? `<strong>${planned.length}</strong> rutas planificadas · <strong>${(planned.reduce((s, r) => s + r.distanceKm, 0)).toFixed(1)} km</strong> totales`
+  const visible = state.routes.filter((r) => ['propuesta', 'planificada'].includes(r.status));
+  drawRoutesOnMap(map, 'plan', visible);
+  renderRoutesList(document.getElementById('routes-list'), visible, { actions: true });
+  const proposals = visible.filter((r) => r.status === 'propuesta');
+  document.getElementById('opt-summary').innerHTML = visible.length
+    ? `<strong>${visible.length}</strong> rutas (${proposals.length} propuestas por aprobar) · <strong>${(visible.reduce((s, r) => s + r.distanceKm, 0)).toFixed(1)} km</strong> totales` +
+      (proposals.length ? ` <button class="btn-link" onclick="approveAll()">Aprobar todas</button>` : '')
     : '';
 }
 
@@ -551,9 +589,18 @@ function renderRoutesList(container, routes, { actions = false, progress = false
             ${route.fedByNodriza ? `<span>🔄 abastecida por nodriza</span>` : ''}
           </div>
           ${progress ? `<div class="route-progress"><div style="width:${pct}%"></div></div><div class="muted" style="margin-top:4px">${done}/${route.stops.length} paradas completadas</div>` : ''}
+          ${actions && route.status === 'propuesta'
+            ? `<div class="route-actions">
+                <button class="btn btn-primary btn-sm" onclick="approveRoute('${route.id}')">✔ Aprobar ruta</button>
+                <button class="btn btn-secondary btn-sm" onclick="deleteRoute('${route.id}')">Rechazar</button>
+              </div>`
+            : ''}
           ${actions && route.status === 'planificada'
             ? `<div class="route-actions">
-                <button class="btn btn-primary btn-sm" onclick="startRoute('${route.id}')">▶ Despachar</button>
+                ${route.loadStatus === 'cargada'
+                  ? `<button class="btn btn-primary btn-sm" onclick="startRoute('${route.id}')">▶ Despachar</button>
+                     <a class="btn btn-secondary btn-sm" href="/print/route/${route.id}" target="_blank" style="text-decoration:none">🖨 Documentos</a>`
+                  : `<a class="btn btn-primary btn-sm" href="#/carga" style="text-decoration:none">📦 Ir a carga (${route.loadStatus === 'en_carga' ? 'en curso' : 'pendiente'})</a>`}
                 <button class="btn btn-secondary btn-sm" onclick="deleteRoute('${route.id}')">Eliminar</button>
               </div>`
             : ''}
@@ -591,6 +638,29 @@ document.getElementById('btn-optimize').addEventListener('click', async () => {
   }
 });
 
+window.approveRoute = async (id) => {
+  try {
+    await api(`/routes/${id}/approve`, { method: 'POST' });
+    toast('Ruta aprobada. La lista de carga está lista en la sección Carga.');
+    render();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
+
+window.approveAll = async () => {
+  const proposals = state.routes.filter((r) => r.status === 'propuesta');
+  for (const r of proposals) {
+    try {
+      await api(`/routes/${r.id}/approve`, { method: 'POST' });
+    } catch (err) {
+      toast(`${r.id}: ${err.message}`, true);
+    }
+  }
+  toast(`${proposals.length} rutas aprobadas`);
+  render();
+};
+
 window.startRoute = async (id) => {
   try {
     await api(`/routes/${id}/start`, { method: 'POST' });
@@ -605,6 +675,156 @@ window.deleteRoute = async (id) => {
   if (!confirm('¿Eliminar esta ruta? Los pedidos volverán a estado pendiente.')) return;
   await api('/routes/' + id, { method: 'DELETE' });
   render();
+};
+
+// ============================================================ CARGA
+let selectedLoadRoute = null;
+
+function renderLoading() {
+  const loadable = state.routes.filter(
+    (r) => r.status === 'planificada' && r.loadingPlan
+  );
+  const container = document.getElementById('load-routes');
+  container.innerHTML = loadable.length
+    ? loadable
+        .map((r, i) => {
+          const vehicle = state.vehicles.find((v) => v.id === r.vehicleId);
+          const loaded = r.loadingPlan.filter((b) => b.loaded).length;
+          return `
+        <div class="route-item" style="--route-color:${routeColor(i)}; cursor:pointer" onclick="selectLoadRoute('${r.id}')">
+          <div class="route-title"><span>${esc(r.id)}</span>${badge(r.loadStatus || 'pendiente', r.loadStatus === 'cargada' ? 'entregado' : 'asignado')}</div>
+          <div class="route-meta">
+            <span>🚛 ${esc(vehicle ? vehicle.plate : '')}</span>
+            <span>📦 ${loaded}/${r.loadingPlan.length} bultos</span>
+            <span>📍 ${r.stops.length} paradas</span>
+          </div>
+          <div class="route-progress"><div style="width:${(loaded / Math.max(1, r.loadingPlan.length)) * 100}%"></div></div>
+        </div>`;
+        })
+        .join('')
+    : '<p class="muted">No hay rutas aprobadas. Aprueba rutas en Planificación.</p>';
+
+  if (selectedLoadRoute && loadable.some((r) => r.id === selectedLoadRoute)) {
+    renderLoadDetail(selectedLoadRoute);
+  } else if (loadable.length === 1) {
+    selectLoadRoute(loadable[0].id);
+  }
+}
+
+window.selectLoadRoute = (routeId) => {
+  selectedLoadRoute = routeId;
+  renderLoadDetail(routeId);
+};
+
+async function renderLoadDetail(routeId) {
+  let data;
+  try {
+    data = await api(`/routes/${routeId}/loading`);
+  } catch (err) {
+    return toast(err.message, true);
+  }
+  const { plan, summary, loadStatus } = data;
+  const route = state.routes.find((r) => r.id === routeId);
+  const vehicle = state.vehicles.find((v) => v.id === route.vehicleId);
+  const PHASES = {
+    1: { title: 'Fase 1 · Volumétrica pesada — delantera central', hint: 'Sacos y pesados primero, al piso delantero-central por estabilidad.' },
+    2: { title: 'Fase 2 · Tubos y largos — parrilla / superior', hint: vehicle && !vehicle.hasParrilla ? '⚠️ Este vehículo NO tiene parrilla: reubicar o cambiar de vehículo.' : 'Asegurar con eslingas.' },
+    3: { title: 'Fase 3 · Paquetería — cajón en orden inverso de entrega', hint: 'Lo del último cliente al fondo; lo del primero junto a la puerta.' },
+  };
+
+  const groups = [1, 2, 3]
+    .map((phase) => {
+      const items = plan.filter((b) => b.phase === phase);
+      if (!items.length) return '';
+      const rows = items
+        .map(
+          (b) => `
+        <tr class="${b.loaded ? 'row-loaded' : ''}">
+          <td>${b.seq}</td>
+          <td><code>${esc(b.barcode)}</code></td>
+          <td class="wrap">${esc(b.description)}<br><span class="muted">Parada ${b.stopSeq} · ${esc(b.customer)}</span></td>
+          <td>${b.weightKg} kg</td>
+          <td>${b.loaded
+            ? `<span class="badge entregado">✔ ${b.loadMethod === 'scan' ? 'escaneado' : 'manual'}</span>`
+            : `<button class="btn btn-secondary btn-sm" onclick="confirmBulto('${routeId}', ${b.seq})">Confirmar</button>`}</td>
+        </tr>`
+        )
+        .join('');
+      return `
+      <h4 class="load-phase">${PHASES[phase].title}</h4>
+      <p class="muted" style="margin:2px 0 8px">${PHASES[phase].hint}</p>
+      <table class="table load-table"><thead><tr><th>#</th><th>Código</th><th>Bulto</th><th>Peso</th><th>Carga</th></tr></thead><tbody>${rows}</tbody></table>`;
+    })
+    .join('');
+
+  document.getElementById('load-detail').innerHTML = `
+    <div class="load-head">
+      <div>
+        <h3 style="margin-bottom:2px">${esc(routeId)} · ${esc(vehicle ? vehicle.plate + ' — ' + vehicle.name : '')}</h3>
+        <span class="muted">${summary.loaded}/${summary.total} bultos · ${summary.weightKg} kg · ${summary.volumeM3} m³</span>
+      </div>
+      ${badge(loadStatus, loadStatus === 'cargada' ? 'entregado' : 'asignado')}
+    </div>
+    ${loadStatus !== 'cargada' ? `
+    <div class="scan-box">
+      <span class="scan-icon">📷</span>
+      <input class="input" id="scan-input" placeholder="Escanea el código de barras del bulto (o escríbelo y Enter)…" autocomplete="off" />
+    </div>
+    <p class="muted" style="margin:6px 0 12px">El lector Bluetooth teclea el código y envía Enter automáticamente: deja el cursor en el campo y escanea.</p>` : `
+    <div class="load-done">
+      ✅ Carga completa. Documentos generados (guías y facturas).
+      <div class="route-actions" style="margin-top:10px">
+        <a class="btn btn-primary btn-sm" href="/print/route/${routeId}" target="_blank" style="text-decoration:none">🖨 Formatos de impresión</a>
+        <button class="btn btn-secondary btn-sm" onclick="viewDocuments('${routeId}')">Ver payload facturación</button>
+        <button class="btn btn-primary btn-sm" onclick="startRoute('${routeId}')">▶ Despachar ruta</button>
+      </div>
+    </div>`}
+    <div class="route-progress" style="margin:10px 0"><div style="width:${(summary.loaded / Math.max(1, summary.total)) * 100}%"></div></div>
+    ${groups}`;
+
+  const scan = document.getElementById('scan-input');
+  if (scan) {
+    scan.focus();
+    scan.addEventListener('keydown', async (e) => {
+      if (e.key !== 'Enter') return;
+      const code = scan.value.trim();
+      scan.value = '';
+      if (!code) return;
+      await sendLoad(routeId, { barcode: code });
+    });
+  }
+}
+
+async function sendLoad(routeId, body) {
+  try {
+    const result = await api(`/routes/${routeId}/load`, { method: 'POST', body });
+    if (result.documentsGenerated) {
+      toast('✅ Carga completa: guías y facturas generadas y enviadas al webservice');
+    } else {
+      toast(`Bulto ${result.bulto.barcode} cargado (${result.summary.loaded}/${result.summary.total})`);
+    }
+    await refreshData();
+    renderLoadDetail(routeId);
+    renderLoading();
+  } catch (err) {
+    toast(err.message, true);
+    const scan = document.getElementById('scan-input');
+    if (scan) scan.focus();
+  }
+}
+
+window.confirmBulto = (routeId, seq) => sendLoad(routeId, { seq });
+
+window.viewDocuments = async (routeId) => {
+  try {
+    const docs = await api(`/routes/${routeId}/documents`);
+    openModal(`Payload facturación · ${routeId}`, `
+      <p class="muted">Este JSON se envía al webservice de facturación electrónica configurado (Empresas → Facturación).</p>
+      <pre style="background:#101a2b;color:#d5e0f2;padding:12px;border-radius:8px;max-height:50vh;overflow:auto;font-size:11.5px">${esc(JSON.stringify(docs, null, 2))}</pre>
+      <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cerrar</button></div>`);
+  } catch (err) {
+    toast(err.message, true);
+  }
 };
 
 // ============================================================ MONITOREO

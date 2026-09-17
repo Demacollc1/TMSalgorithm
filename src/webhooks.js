@@ -63,4 +63,12 @@ function dispatchWebhooks(event, payload, { companyId } = {}) {
   }
 }
 
-module.exports = { dispatchWebhooks };
+/** Envía un evento puntual a una URL (p. ej. webservice de facturación). */
+function dispatchToUrl(url, event, payload) {
+  const body = JSON.stringify({ event, payload, sentAt: new Date().toISOString() });
+  postJson(url, event, body, (err) => {
+    logEvent('webhook.error', { url, event, error: err.message });
+  });
+}
+
+module.exports = { dispatchWebhooks, dispatchToUrl };

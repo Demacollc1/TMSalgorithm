@@ -8,6 +8,10 @@ const { URL } = require('url');
 const { db, nextId, init, save, reset, logEvent, logIntegration, newApiKey, newTrackingCode } = require('./src/store');
 const { optimize } = require('./src/optimizer');
 const { quote } = require('./src/pricing');
+const { mapPlan } = require('./src/importer');
+const { buildLoadingPlan, loadingSummary } = require('./src/loading');
+const { buildRouteDocuments } = require('./src/billing');
+const { renderRoutePrint } = require('./src/printview');
 const simulator = require('./src/simulator');
 const { dispatchWebhooks } = require('./src/webhooks');
 
@@ -92,6 +96,7 @@ function createOrder(it, { companyId = null, source = 'tms' } = {}) {
     status: 'pendiente',
     priority: it.priority || 'normal',
     notes: it.notes || '',
+    bultos: Array.isArray(it.bultos) ? it.bultos : [],
     pod: null,
     createdAt: new Date().toISOString(),
   };
@@ -126,12 +131,12 @@ function publicTracking(order) {
 function computeKpis() {
   const orders = db.orders;
   const total = orders.length;
-  const done = orders.filter((o) => ['entregado', 'recolectado'].includes(o.status)).length;
-  const failed = orders.filter((o) => o.status === 'no_entregado').length;
+  const done = orders.filter((o) => ['entregado', 'recolectado', 'entrega_parcial'].includes(o.status)).length;
+  const failed = orders.filter((o) => ['no_entregado', 'devuelto', 'rechazado'].includes(o.status)).length;
   const inRoute = orders.filter((o) => o.status === 'en_ruta').length;
   const pending = orders.filter((o) => ['pendiente', 'asignado'].includes(o.status)).length;
   const activeRoutes = db.routes.filter((r) => r.status === 'en_curso').length;
-  const plannedRoutes = db.routes.filter((r) => r.status === 'planificada').length;
+  const plannedRoutes = db.routes.filter((r) => ['planificada', 'propuesta'].includes(r.status)).length;
   const completedRoutes = db.routes.filter((r) => r.status === 'completada').length;
   const totalKm = Math.round(db.routes.reduce((s, r) => s + (r.distanceKm || 0), 0) * 10) / 10;
   const byCommune = {};
@@ -246,8 +251,11 @@ async function handleApi(req, res, pathname, query) {
         capacityKg: Number(body.capacityKg) || 1000,
         capacityM3: Number(body.capacityM3) || 8,
         isNodriza: !!body.isNodriza,
+        hasParrilla: !!body.hasParrilla,
+        apto: body.apto !== false,
+        aptoNotes: body.aptoNotes || '',
         driverId: body.driverId || null,
-        status: 'disponible',
+        status: body.apto === false ? 'no_apto' : 'disponible',
       };
       db.vehicles.push(vehicle);
       save();
@@ -257,8 +265,13 @@ async function handleApi(req, res, pathname, query) {
       const v = db.vehicles.find((x) => x.id === id);
       if (!v) return notFound(res);
       const body = await readBody(req);
-      for (const k of ['plate', 'name', 'type', 'capacityKg', 'capacityM3', 'isNodriza', 'driverId', 'status']) {
+      for (const k of ['plate', 'name', 'type', 'capacityKg', 'capacityM3', 'isNodriza', 'hasParrilla', 'apto', 'aptoNotes', 'driverId', 'status']) {
         if (k in body) v[k] = body[k];
+      }
+      // la aptitud manda sobre el estado operativo
+      if ('apto' in body) {
+        if (body.apto === false && v.status === 'disponible') v.status = 'no_apto';
+        if (body.apto === true && v.status === 'no_apto') v.status = 'disponible';
       }
       save();
       return sendJSON(res, 200, { data: v });
@@ -315,11 +328,12 @@ async function handleApi(req, res, pathname, query) {
       (o) =>
         ['pendiente'].includes(o.status) && (!orderIds || orderIds.includes(o.id))
     );
+    // solo vehículos aptos para viajar (matrícula/revisión/mantenimiento al día)
     const vehicles = db.vehicles.filter(
-      (v) => v.status === 'disponible' && (!vehicleIds || vehicleIds.includes(v.id))
+      (v) => v.status === 'disponible' && v.apto !== false && (!vehicleIds || vehicleIds.includes(v.id))
     );
     if (!orders.length) return badRequest(res, 'No hay pedidos pendientes para planificar');
-    if (!vehicles.length) return badRequest(res, 'No hay vehículos disponibles');
+    if (!vehicles.length) return badRequest(res, 'No hay vehículos disponibles y aptos para viajar');
 
     const result = optimize({
       depot: db.company.depot,
@@ -329,11 +343,15 @@ async function handleApi(req, res, pathname, query) {
     });
 
     // materializa las rutas
+    // las rutas nacen como PROPUESTA del planificador; el usuario las aprueba
     const created = result.routes.map((r) => {
       const route = {
         id: nextId('RUT'),
         date: body.date || new Date().toISOString().slice(0, 10),
-        status: 'planificada',
+        status: 'propuesta',
+        loadStatus: null,
+        loadingPlan: null,
+        documents: null,
         createdAt: new Date().toISOString(),
         ...r,
       };
@@ -363,14 +381,164 @@ async function handleApi(req, res, pathname, query) {
       if (query.get('status')) list = list.filter((r) => r.status === query.get('status'));
       return sendJSON(res, 200, { data: list, count: list.length });
     }
-    if (method === 'GET' && id) {
+    if (method === 'GET' && id && !action) {
       const r = db.routes.find((x) => x.id === id);
       return r ? sendJSON(res, 200, { data: r }) : notFound(res);
     }
+    // Aprobación de la ruta propuesta por el planificador
+    if (method === 'POST' && id && action === 'approve') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (route.status !== 'propuesta') return badRequest(res, 'La ruta no está en estado propuesta');
+      route.status = 'planificada';
+      route.approvedAt = new Date().toISOString();
+      route.loadingPlan = buildLoadingPlan(route, db.orders);
+      route.loadStatus = 'pendiente';
+      save();
+      logEvent('route.aprobada', { routeId: route.id, bultos: route.loadingPlan.length });
+      dispatchWebhooks('route.approved', { routeId: route.id });
+      return sendJSON(res, 200, { data: route });
+    }
+
+    // Lista de carga (checklist de bultos en orden físico de carga)
+    if (method === 'GET' && id && action === 'loading') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (!route.loadingPlan) return badRequest(res, 'La ruta aún no está aprobada');
+      return sendJSON(res, 200, {
+        data: { routeId: route.id, loadStatus: route.loadStatus, plan: route.loadingPlan, summary: loadingSummary(route.loadingPlan) },
+      });
+    }
+
+    // Confirmación de carga de un bulto: por escáner ({barcode}) o por
+    // botón ({seq, method:'manual'})
+    if (method === 'POST' && id && action === 'load') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (!route.loadingPlan) return badRequest(res, 'La ruta aún no está aprobada');
+      if (route.loadStatus === 'cargada') return badRequest(res, 'La carga ya fue confirmada por completo');
+      const body = await readBody(req);
+      let bulto = null;
+      if (body.barcode) {
+        const code = String(body.barcode).trim();
+        bulto = route.loadingPlan.find(
+          (b) => !b.loaded && (b.barcode === code || b.containerId === code)
+        );
+        if (!bulto) {
+          const yaCargado = route.loadingPlan.find((b) => b.barcode === code || b.containerId === code);
+          return sendJSON(res, 409, {
+            error: yaCargado ? `El bulto ${code} ya fue cargado` : `Código ${code} no pertenece a esta ruta`,
+          });
+        }
+      } else if (body.seq) {
+        bulto = route.loadingPlan.find((b) => b.seq === Number(body.seq));
+        if (!bulto) return notFound(res, 'Bulto no encontrado');
+        if (bulto.loaded) return sendJSON(res, 409, { error: 'El bulto ya fue cargado' });
+      } else {
+        return badRequest(res, 'Envía barcode (escáner) o seq (confirmación manual)');
+      }
+      bulto.loaded = true;
+      bulto.loadedAt = new Date().toISOString();
+      bulto.loadMethod = body.barcode ? 'scan' : 'manual';
+      route.loadStatus = 'en_carga';
+
+      const summary = loadingSummary(route.loadingPlan);
+      let documentsGenerated = false;
+      if (summary.complete) {
+        // carga completa: generar guías + facturas y notificar al webservice
+        route.loadStatus = 'cargada';
+        route.loadedAt = new Date().toISOString();
+        const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
+        const driver = vehicle && db.drivers.find((d) => d.id === vehicle.driverId);
+        route.documents = buildRouteDocuments({
+          route,
+          orders: db.orders,
+          vehicle,
+          driver,
+          billing: db.company.billing,
+          nextSeq: () => ++db.billingSeq,
+        });
+        documentsGenerated = true;
+        logEvent('route.cargada', { routeId: route.id, documentos: route.documents.length });
+        dispatchWebhooks('route.loaded', { routeId: route.id, documents: route.documents.length });
+        // envío del payload al webservice de facturación electrónica
+        if (db.company.billing.webserviceUrl) {
+          const { dispatchToUrl } = require('./src/webhooks');
+          dispatchToUrl(db.company.billing.webserviceUrl, 'billing.route_loaded', {
+            routeId: route.id,
+            documents: route.documents,
+          });
+        }
+      }
+      save();
+      return sendJSON(res, 200, {
+        data: { bulto, summary, loadStatus: route.loadStatus, documentsGenerated },
+      });
+    }
+
+    // Documentos (guías + facturas) generados al completar la carga
+    if (method === 'GET' && id && action === 'documents') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (!route.documents) return badRequest(res, 'La carga aún no está completa; no hay documentos');
+      return sendJSON(res, 200, { data: route.documents });
+    }
+
+    // Confirmación de entrega del conductor (por bulto, con novedades)
+    if (method === 'POST' && id && action === 'deliver') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (route.status !== 'en_curso') return badRequest(res, 'La ruta no está en curso');
+      const body = await readBody(req);
+      const order = db.orders.find((o) => o.id === body.orderId && o.routeId === route.id);
+      if (!order) return notFound(res, 'Pedido no encontrado en esta ruta');
+      const resultado = ['entregado', 'entrega_parcial', 'devolucion', 'rechazado'].includes(body.resultado)
+        ? body.resultado
+        : 'entregado';
+      const confirmed = new Set((body.bultoBarcodes || []).map((c) => String(c).trim()));
+      const bultos = (route.loadingPlan || []).filter((b) => b.orderId === order.id);
+      for (const b of bultos) {
+        const wasConfirmed = confirmed.has(b.barcode) || confirmed.has(b.containerId) || resultado === 'entregado';
+        b.delivered = wasConfirmed && resultado !== 'rechazado' && resultado !== 'devolucion';
+        b.deliveredAt = new Date().toISOString();
+        b.deliveryStatus =
+          resultado === 'rechazado' ? 'rechazado'
+          : resultado === 'devolucion' ? 'devuelto'
+          : wasConfirmed ? 'entregado' : 'no_entregado';
+      }
+      order.status =
+        resultado === 'entregado' ? (order.type === 'recoleccion' ? 'recolectado' : 'entregado')
+        : resultado === 'entrega_parcial' ? 'entrega_parcial'
+        : resultado === 'devolucion' ? 'devuelto'
+        : 'rechazado';
+      order.pod = {
+        at: new Date().toISOString(),
+        receiver: body.receptor || 'Sin nombre',
+        method: body.bultoBarcodes && body.bultoBarcodes.length ? 'escaner' : 'boton',
+        notes: body.motivo || '',
+        resultado,
+        bultosEntregados: bultos.filter((b) => b.deliveryStatus === 'entregado').length,
+        bultosTotales: bultos.length,
+        lat: order.lat,
+        lng: order.lng,
+      };
+      save();
+      logEvent('order.' + order.status, { orderId: order.id, code: order.code, routeId: route.id, resultado });
+      dispatchWebhooks(
+        'order.status_changed',
+        { orderId: order.id, trackingCode: order.trackingCode, status: order.status, resultado, pod: order.pod },
+        { companyId: order.companyId }
+      );
+      return sendJSON(res, 200, { data: order });
+    }
+
     if (method === 'POST' && id && action === 'start') {
       const route = db.routes.find((x) => x.id === id);
       if (!route) return notFound(res);
-      if (route.status !== 'planificada') return badRequest(res, 'La ruta no está en estado planificada');
+      if (route.status !== 'planificada') return badRequest(res, 'La ruta no está en estado planificada (¿falta aprobarla?)');
+      if (route.loadingPlan && route.loadStatus !== 'cargada') {
+        return badRequest(res, 'La carga no está confirmada: completa la lista de carga antes de despachar');
+      }
       route.status = 'en_curso';
       route.startedAt = new Date().toISOString();
       const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
@@ -440,6 +608,51 @@ async function handleApi(req, res, pathname, query) {
       const [removed] = db.webhooks.splice(idx, 1);
       save();
       return sendJSON(res, 200, { data: removed });
+    }
+  }
+
+  // ---- importación de planes (formato Driv.in del ERP) ------------
+  if (resource === 'import' && method === 'POST') {
+    const body = await readBody(req);
+    let mapped;
+    try {
+      mapped = mapPlan(body.plan || body);
+    } catch (err) {
+      return badRequest(res, err.message);
+    }
+    const companyId = body.companyId || (db.companies.find((c) => c.type === 'erp') || {}).id || null;
+    const created = [];
+    try {
+      for (const o of mapped.orders) {
+        created.push(createOrder(o, { companyId, source: 'plan-import' }));
+      }
+    } catch (err) {
+      return badRequest(res, err.message);
+    }
+    save();
+    logEvent('plan.imported', {
+      orders: created.length,
+      bultos: created.reduce((s, o) => s + o.bultos.length, 0),
+    });
+    dispatchWebhooks('order.created', { orders: created.map((o) => o.id), source: 'plan-import' });
+    return sendJSON(res, 201, {
+      data: {
+        orders: created.map((o) => ({ id: o.id, code: o.code, trackingCode: o.trackingCode, customer: o.customer, bultos: o.bultos.length })),
+        warnings: mapped.warnings,
+      },
+    });
+  }
+
+  // ---- configuración de facturación electrónica -------------------
+  if (resource === 'billing-config') {
+    if (method === 'GET') return sendJSON(res, 200, { data: db.company.billing });
+    if (method === 'PUT') {
+      const body = await readBody(req);
+      for (const k of ['razonSocial', 'ruc', 'direccion', 'establecimiento', 'puntoEmision', 'ivaPct', 'webserviceUrl']) {
+        if (k in body) db.company.billing[k] = body[k];
+      }
+      save();
+      return sendJSON(res, 200, { data: db.company.billing });
     }
   }
 
@@ -574,7 +787,7 @@ async function handlePublicApi(req, res, pathname) {
           volumeM3: body.volumeM3,
           date: body.date,
           notes: body.notes || '',
-          price: quoted.priceClp,
+          price: quoted.priceUsd,
         },
         { companyId: portalCompany ? portalCompany.id : null, source: 'portal' }
       );
@@ -582,14 +795,14 @@ async function handlePublicApi(req, res, pathname) {
       return badRequest(res, err.message);
     }
     save();
-    logEvent('freight.contracted', { orderId: order.id, trackingCode: order.trackingCode, priceClp: quoted.priceClp });
+    logEvent('freight.contracted', { orderId: order.id, trackingCode: order.trackingCode, priceUsd: quoted.priceUsd });
     dispatchWebhooks('order.created', { orders: [order.id], source: 'portal' });
     return sendJSON(res, 201, {
       data: {
         trackingCode: order.trackingCode,
         status: order.status,
-        priceClp: quoted.priceClp,
-        currency: 'CLP',
+        priceUsd: quoted.priceUsd,
+        currency: 'USD',
         distanceKm: quoted.distanceKm,
         date: order.date,
       },
@@ -741,6 +954,7 @@ function serveStatic(res, pathname) {
   let file = pathname === '/' ? '/index.html' : pathname;
   if (file === '/docs') file = '/docs.html';
   if (file === '/portal' || file === '/portal/') file = '/portal.html';
+  if (file === '/conductor' || file === '/conductor/') file = '/conductor.html';
   const full = path.join(PUBLIC_DIR, path.normalize(file));
   if (!full.startsWith(PUBLIC_DIR)) return notFound(res);
   fs.readFile(full, (err, data) => {
@@ -777,6 +991,21 @@ const server = http.createServer(async (req, res) => {
       await handleIntegrationApi(req, res, pathname);
     } else if (pathname.startsWith('/api/')) {
       await handleApi(req, res, pathname, url.searchParams);
+    } else if (pathname.startsWith('/print/route/')) {
+      const route = db.routes.find((r) => r.id === pathname.split('/')[3]);
+      if (!route || !route.documents) return notFound(res, 'Ruta sin documentos generados');
+      const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
+      const driver = vehicle && db.drivers.find((d) => d.id === vehicle.driverId);
+      const html = renderRoutePrint({
+        route,
+        orders: db.orders,
+        vehicle,
+        driver,
+        billing: db.company.billing,
+        companyName: db.company.name,
+      });
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(html);
     } else {
       serveStatic(res, pathname);
     }

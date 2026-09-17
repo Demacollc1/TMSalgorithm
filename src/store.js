@@ -21,12 +21,22 @@ const db = {
   company: {
     name: 'Macotrans TMS',
     depot: {
-      name: 'Centro de Distribución Santiago',
-      address: 'Av. Presidente Eduardo Frei Montalva 1200, Renca, Santiago',
-      lat: -33.404,
-      lng: -70.6883,
+      name: 'Centro de Distribución Guayaquil',
+      address: 'Urb. Santa Leonor Mz. 6 Solar 13, Guayaquil, Ecuador',
+      lat: -2.1329,
+      lng: -79.8855,
+    },
+    billing: {
+      razonSocial: 'MACOTRANS S.A.',
+      ruc: '0999999999001',
+      direccion: 'Urb. Santa Leonor Mz. 6 Solar 13, Guayaquil, Ecuador',
+      establecimiento: '005',
+      puntoEmision: '002',
+      ivaPct: 15,
+      webserviceUrl: '', // webservice de facturación electrónica (POST)
     },
   },
+  billingSeq: 140100, // secuencial de comprobantes (guías y facturas)
   companies: [], // empresas cliente (tenants): ERPs, e-commerce, portal público
   orders: [],
   vehicles: [],
@@ -54,9 +64,9 @@ function seedData() {
   db.companies = [
     {
       id: 'CMP-1',
-      name: 'Comercial Andina SpA',
+      name: 'DEMACO CIA. LTDA.',
       type: 'erp',
-      contactEmail: 'operaciones@comercialandina.cl',
+      contactEmail: 'sistemas@demaco.ec',
       apiKey: newApiKey(),
       webhookUrl: '',
       active: true,
@@ -64,9 +74,9 @@ function seedData() {
     },
     {
       id: 'CMP-2',
-      name: 'TiendaVeloz.cl',
+      name: 'TiendaVeloz.ec',
       type: 'ecommerce',
-      contactEmail: 'logistica@tiendaveloz.cl',
+      contactEmail: 'logistica@tiendaveloz.ec',
       apiKey: newApiKey(),
       webhookUrl: '',
       active: true,
@@ -76,7 +86,7 @@ function seedData() {
       id: 'CMP-3',
       name: 'Clientes Portal Web',
       type: 'portal',
-      contactEmail: 'contacto@macotrans.cl',
+      contactEmail: 'contacto@macotrans.ec',
       apiKey: newApiKey(),
       webhookUrl: '',
       active: true,
@@ -85,68 +95,108 @@ function seedData() {
   ];
 
   db.drivers = [
-    { id: 'DRV-1', name: 'Carolina Fuentes', phone: '+56 9 8123 4501', license: 'A2', status: 'disponible' },
-    { id: 'DRV-2', name: 'Jorge Miranda', phone: '+56 9 8123 4502', license: 'A4', status: 'disponible' },
-    { id: 'DRV-3', name: 'Valentina Rojas', phone: '+56 9 8123 4503', license: 'B', status: 'disponible' },
-    { id: 'DRV-4', name: 'Matías Herrera', phone: '+56 9 8123 4504', license: 'A5', status: 'disponible' },
+    { id: 'DRV-1', name: 'Carlos Rivera Montaño', phone: '+593 99 812 3451', license: 'E', status: 'disponible' },
+    { id: 'DRV-2', name: 'Jorge Miranda Vera', phone: '+593 99 812 3452', license: 'C', status: 'disponible' },
+    { id: 'DRV-3', name: 'Valentina Rojas Peña', phone: '+593 99 812 3453', license: 'C', status: 'disponible' },
+    { id: 'DRV-4', name: 'Matías Herrera Luna', phone: '+593 99 812 3454', license: 'E', status: 'disponible' },
   ];
 
+  // apto: habilitado para salir a ruta (matrícula, revisión, mantenimiento)
+  // hasParrilla: puede llevar tubos/perfiles en parrilla o cajón superior
   db.vehicles = [
-    { id: 'VEH-1', plate: 'LKRD-23', name: 'Camión Nodriza 01', type: 'camion', capacityKg: 8000, capacityM3: 42, isNodriza: true, driverId: 'DRV-4', status: 'disponible' },
-    { id: 'VEH-2', plate: 'HTXS-91', name: 'Van Reparto 01', type: 'van', capacityKg: 1200, capacityM3: 9, isNodriza: false, driverId: 'DRV-1', status: 'disponible' },
-    { id: 'VEH-3', plate: 'JPWK-55', name: 'Van Reparto 02', type: 'van', capacityKg: 1200, capacityM3: 9, isNodriza: false, driverId: 'DRV-2', status: 'disponible' },
-    { id: 'VEH-4', plate: 'KZBF-08', name: 'Camión 3/4 01', type: 'camion', capacityKg: 3000, capacityM3: 18, isNodriza: false, driverId: 'DRV-3', status: 'disponible' },
+    { id: 'VEH-1', plate: 'GSM-2347', name: 'Camión Nodriza 01', type: 'camion', capacityKg: 8000, capacityM3: 42, isNodriza: true, hasParrilla: true, apto: true, aptoNotes: '', driverId: 'DRV-4', status: 'disponible' },
+    { id: 'VEH-2', plate: 'GBA-1123', name: 'Furgón Reparto 01', type: 'van', capacityKg: 1200, capacityM3: 9, isNodriza: false, hasParrilla: false, apto: true, aptoNotes: '', driverId: 'DRV-1', status: 'disponible' },
+    { id: 'VEH-3', plate: 'GCT-8890', name: 'Furgón Reparto 02', type: 'van', capacityKg: 1200, capacityM3: 9, isNodriza: false, hasParrilla: true, apto: true, aptoNotes: '', driverId: 'DRV-2', status: 'disponible' },
+    { id: 'VEH-4', plate: 'GRT-4432', name: 'Camión 3.5T 01', type: 'camion', capacityKg: 3500, capacityM3: 18, isNodriza: false, hasParrilla: true, apto: true, aptoNotes: '', driverId: 'DRV-3', status: 'disponible' },
+    { id: 'VEH-5', plate: 'GKL-7215', name: 'Camión 3.5T 02', type: 'camion', capacityKg: 3500, capacityM3: 18, isNodriza: false, hasParrilla: true, apto: false, aptoNotes: 'En mantenimiento: cambio de embrague', driverId: null, status: 'no_apto' },
   ];
 
   const today = new Date().toISOString().slice(0, 10);
+  // Sectores de Guayaquil y alrededores con coordenadas aproximadas
   const seedOrders = [
-    // [código, tipo, dirección, comuna, lat, lng, kg, m3, ventana, cliente]
-    ['PED-0001', 'entrega', 'Av. Apoquindo 4501', 'Las Condes', -33.4172, -70.6015, 180, 1.2, ['09:00', '13:00'], 'Comercial Andina SpA'],
-    ['PED-0002', 'entrega', 'Av. Providencia 2124', 'Providencia', -33.4212, -70.6106, 95, 0.8, ['09:00', '18:00'], 'Farmacias Vital'],
-    ['PED-0003', 'entrega', 'Gran Avenida 5822', 'San Miguel', -33.4972, -70.6535, 240, 2.1, ['10:00', '14:00'], 'Distribuidora El Sol'],
-    ['PED-0004', 'recoleccion', 'Av. Vicuña Mackenna 4917', 'Macul', -33.4907, -70.6011, 120, 1.0, ['11:00', '17:00'], 'Textil Ñuñoa Ltda.'],
-    ['PED-0005', 'entrega', 'Av. Pajaritos 3030', 'Maipú', -33.4826, -70.7541, 310, 2.6, ['09:00', '12:00'], 'Supermercados Cordillera'],
-    ['PED-0006', 'entrega', 'Av. Independencia 2870', 'Independencia', -33.4093, -70.6640, 75, 0.5, ['08:30', '18:00'], 'Botillería Central'],
-    ['PED-0007', 'entrega', 'Av. Recoleta 2050', 'Recoleta', -33.4059, -70.6408, 130, 1.1, ['09:00', '18:00'], 'Ferretería El Clavo'],
-    ['PED-0008', 'recoleccion', 'Camino a Melipilla 9600', 'Cerrillos', -33.5169, -70.7204, 400, 3.2, ['13:00', '17:00'], 'Bodegas del Pacífico'],
-    ['PED-0009', 'entrega', 'Av. La Florida 9343', 'La Florida', -33.5423, -70.5638, 210, 1.8, ['10:00', '16:00'], 'Clínica Dental Sur'],
-    ['PED-0010', 'entrega', 'Av. Irarrázaval 3050', 'Ñuñoa', -33.4548, -70.6072, 60, 0.4, ['09:00', '18:00'], 'Café Ñuñoa'],
-    ['PED-0011', 'entrega', 'Av. San Pablo 8444', 'Pudahuel', -33.4419, -70.7583, 520, 4.0, ['08:30', '12:30'], 'Importadora Oeste'],
-    ['PED-0012', 'entrega', 'Av. El Bosque Norte 0177', 'Las Condes', -33.4136, -70.5990, 45, 0.3, ['10:00', '18:00'], 'Oficinas Torre Norte'],
-    ['PED-0013', 'recoleccion', 'Av. Departamental 4800', 'San Joaquín', -33.5089, -70.6284, 150, 1.4, ['14:00', '18:00'], 'Reciclajes Metropolitana'],
-    ['PED-0014', 'entrega', 'Av. Vitacura 6255', 'Vitacura', -33.3901, -70.5754, 88, 0.7, ['09:00', '13:00'], 'Deco Hogar Vitacura'],
-    ['PED-0015', 'entrega', 'Av. Quilín 3750', 'Peñalolén', -33.4903, -70.5741, 175, 1.5, ['09:00', '18:00'], 'Vivero Los Aromos'],
-    ['PED-0016', 'entrega', 'Av. Domingo Santa María 3800', 'Conchalí', -33.3949, -70.6791, 230, 2.0, ['08:30', '14:00'], 'Panadería San Camilo'],
-    ['PED-0017', 'entrega', 'Av. Manuel Antonio Matta 950', 'Santiago Centro', -33.4599, -70.6432, 110, 0.9, ['09:00', '18:00'], 'Librería Matta'],
-    ['PED-0018', 'recoleccion', 'Av. Lo Espejo 0341', 'Lo Espejo', -33.5230, -70.6899, 260, 2.2, ['12:00', '17:00'], 'Muebles La Fábrica'],
+    // [código, tipo, dirección, sector, lat, lng, ventana, cliente, bultos]
+    ['PED-0001', 'entrega', 'Cdla. Simón Bolívar Mz. 5', 'Av. de las Américas', -2.1522, -79.8867, ['09:00', '11:00'], 'Ferretería Las Américas',
+      [['saco', 'BONDEX STANDARD CERAMICA 25 KG', 4, 100], ['saco', 'EMPASTE INTERIOR BLANCO 20kg', 3, 60], ['caja', 'GRIFERÍA Y REPUESTOS VARIOS', 2, 8]]],
+    ['PED-0002', 'entrega', 'Av. Víctor Emilio Estrada 620', 'Urdesa', -2.1681, -79.9053, ['09:00', '18:00'], 'Comercial Urdesa Centro',
+      [['tubo', 'TUBO PVC PRESION 32mmx6m (x20)', 1, 28], ['caja', 'ACCESORIOS PVC PRESION', 3, 12]]],
+    ['PED-0003', 'entrega', 'Av. Francisco de Orellana', 'Alborada', -2.1349, -79.9042, ['10:00', '14:00'], 'Distribuidora El Sol',
+      [['saco', 'CEMENTO ASFALTICO 20KG', 2, 40], ['caja', 'SELLADORES Y SILICONAS', 2, 10]]],
+    ['PED-0004', 'recoleccion', 'Av. Juan Tanca Marengo Km 2', 'Kennedy Norte', -2.1512, -79.8935, ['11:00', '17:00'], 'Textiles del Litoral',
+      [['caja', 'DEVOLUCIÓN MERCADERÍA', 3, 45]]],
+    ['PED-0005', 'entrega', 'Av. del Bombero Km 6.5', 'Los Ceibos', -2.1633, -79.9401, ['09:00', '12:00'], 'Constructora Ceibos Hills',
+      [['saco', 'MORTERO MULTIUSO 25 KG (x8)', 1, 200], ['tubo', 'TUBO PVC DESAGUE 110mmx3m (x15)', 1, 42], ['caja', 'CAJAS DE HERRAMIENTAS', 4, 30]]],
+    ['PED-0006', 'entrega', 'Av. Quito y Portete', 'Centro', -2.2035, -79.8901, ['08:30', '18:00'], 'Ferretería El Constructor',
+      [['caja', 'BROCAS Y DISCOS DEWALT', 2, 9]]],
+    ['PED-0007', 'entrega', 'Cdla. La Garzota Mz. 34', 'La Garzota', -2.1417, -79.8942, ['09:00', '18:00'], 'Ferretería La Garzota',
+      [['caja', 'CERRADURAS Y CANDADOS', 2, 14], ['caja', 'LIJAS Y ABRASIVOS', 1, 6]]],
+    ['PED-0008', 'recoleccion', 'Parque Industrial El Sauce', 'Vía Daule Km 10', -2.1130, -79.9260, ['13:00', '17:00'], 'Bodegas del Pacífico',
+      [['saco', 'RETIRO SACOS DEFECTUOSOS', 1, 150], ['caja', 'RETIRO PAQUETERÍA', 4, 60]]],
+    ['PED-0009', 'entrega', 'Av. Domingo Comín 135', 'Sur - Centenario', -2.2290, -79.8952, ['10:00', '16:00'], 'Clínica Dental Sur',
+      [['caja', 'INSUMOS Y GRIFERÍA BAÑOS', 2, 18]]],
+    ['PED-0010', 'entrega', 'Cdla. Sauces 6 Mz. 265', 'Sauces', -2.1207, -79.8969, ['09:00', '18:00'], 'Minimarket Sauces',
+      [['caja', 'PAQUETERÍA VARIA', 1, 7]]],
+    ['PED-0011', 'entrega', 'Km 4.5 Vía Durán-Tambo', 'Durán', -2.1794, -79.8206, ['08:30', '12:30'], 'Importadora Oriente',
+      [['saco', 'CEMENTO CONTACTO GALONES (x12)', 1, 90], ['tubo', 'TUBO PVC PRESION 63mmx6m (x25)', 1, 95], ['caja', 'TEFLONES Y ABASTOS', 5, 24]]],
+    ['PED-0012', 'entrega', 'Av. Samborondón Km 1.5', 'Samborondón', -2.1327, -79.8646, ['10:00', '18:00'], 'Edificio Torre Río',
+      [['caja', 'INTERRUPTORES LIVING NOW', 2, 6]]],
+    ['PED-0013', 'recoleccion', 'Av. Carlos Julio Arosemena Km 2', 'Miraflores', -2.1789, -79.9182, ['14:00', '18:00'], 'Reciclajes del Guayas',
+      [['caja', 'RETIRO EQUIPOS', 2, 38]]],
+    ['PED-0014', 'entrega', 'Cdla. Kennedy Vieja Mz. 8', 'Kennedy', -2.1687, -79.8973, ['09:00', '13:00'], 'Deco Hogar Kennedy',
+      [['caja', 'REJILLAS Y SIFONES', 3, 11]]],
+    ['PED-0015', 'entrega', 'Vía a la Costa Km 12', 'Puerto Azul', -2.1901, -79.9885, ['09:00', '18:00'], 'Urbanización Puerto Azul',
+      [['saco', 'SIKA IMPERMEABILIZANTE 20kg (x4)', 1, 80], ['caja', 'ESPUMAS Y SELLADORES', 2, 12]]],
+    ['PED-0016', 'entrega', 'Av. Benjamín Rosales', 'Terminal Terrestre', -2.1408, -79.8813, ['08:30', '14:00'], 'Comercial La Terminal',
+      [['caja', 'PINTURAS SPRAY Y BROCHAS', 3, 20]]],
+    ['PED-0017', 'entrega', 'Malecón 2000 local 12', 'Malecón', -2.1946, -79.8794, ['09:00', '18:00'], 'Librería del Malecón',
+      [['caja', 'PAPELERÍA Y OFICINA', 2, 9]]],
+    ['PED-0018', 'recoleccion', 'Cdla. Guangala Mz. 40', 'Sur - Guasmo', -2.2513, -79.8890, ['12:00', '17:00'], 'Muebles La Fábrica',
+      [['caja', 'DEVOLUCIÓN MUEBLES ARMADOS', 3, 85]]],
   ];
 
   // reparte los pedidos seed entre las empresas cliente para mostrar
   // la planificación consolidada multi-empresa
-  db.orders = seedOrders.map((o, i) => ({
-    id: nextId('ORD'),
-    companyId: i < 6 ? 'CMP-1' : i < 12 ? 'CMP-2' : 'CMP-3',
-    source: i < 6 ? 'api-erp' : i < 12 ? 'api-ecommerce' : 'portal',
-    trackingCode: newTrackingCode(),
-    price: null,
-    contact: null,
-    code: o[0],
-    type: o[1],
-    address: `${o[2]}, ${o[3]}`,
-    commune: o[3],
-    lat: o[4],
-    lng: o[5],
-    weightKg: o[6],
-    volumeM3: o[7],
-    timeWindow: { start: o[8][0], end: o[8][1] },
-    customer: o[9],
-    date: today,
-    status: 'pendiente',
-    priority: 'normal',
-    notes: '',
-    pod: null,
-    createdAt: new Date().toISOString(),
-  }));
+  db.orders = seedOrders.map((o, i) => {
+    const bultos = o[8].map(([kind, desc, count, totalKg], bi) => {
+      const perBulto = totalKg / count;
+      return Array.from({ length: count }, (_, k) => ({
+        containerId: `${o[0]}-B${bi + 1}${count > 1 ? '-' + (k + 1) : ''}`,
+        barcode: `${o[0]}-B${bi + 1}${count > 1 ? '-' + (k + 1) : ''}`,
+        description: desc,
+        itemCount: 1,
+        unitCount: 1,
+        weightKg: Math.round(perBulto * 100) / 100,
+        volumeM3: Math.round((kind === 'tubo' ? 0.2 : perBulto * 0.004) * 10000) / 10000,
+        cargoType: kind === 'caja' ? 'paqueteria' : 'volumetrica',
+        zone: kind === 'tubo' ? 'parrilla' : kind === 'saco' ? 'delantera-central' : 'cajon',
+        items: [],
+      }));
+    }).flat();
+    return {
+      id: nextId('ORD'),
+      companyId: i < 6 ? 'CMP-1' : i < 12 ? 'CMP-2' : 'CMP-3',
+      source: i < 6 ? 'api-erp' : i < 12 ? 'api-ecommerce' : 'portal',
+      trackingCode: newTrackingCode(),
+      price: null,
+      contact: null,
+      code: o[0],
+      type: o[1],
+      address: `${o[2]}, ${o[3]}, Guayaquil`,
+      commune: o[3],
+      lat: o[4],
+      lng: o[5],
+      weightKg: Math.round(bultos.reduce((s, b) => s + b.weightKg, 0) * 10) / 10,
+      volumeM3: Math.round(bultos.reduce((s, b) => s + b.volumeM3, 0) * 100) / 100,
+      timeWindow: { start: o[6][0], end: o[6][1] },
+      customer: o[7],
+      bultos,
+      date: today,
+      status: 'pendiente',
+      priority: 'normal',
+      notes: '',
+      pod: null,
+      createdAt: new Date().toISOString(),
+    };
+  });
 }
 
 // ------------------------------------------------------- persistencia

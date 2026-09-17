@@ -5,15 +5,15 @@ const { haversineKm } = require('./geo');
 /**
  * Motor de cotización de fletes Macotrans.
  * Tarifa = base + km + peso + volumen, con multiplicador por servicio.
- * Valores en CLP, redondeados a la centena.
+ * Valores en USD (Ecuador).
  */
 
 const TARIFF = {
-  baseClp: 12000,
-  perKm: 950,
-  perKg: 60,
-  perM3: 7500,
-  minClp: 15000,
+  baseUsd: 8,
+  perKm: 0.85,
+  perKg: 0.05,
+  perM3: 6,
+  minUsd: 10,
   serviceMultiplier: {
     normal: 1,
     express: 1.35, // entrega el mismo día
@@ -21,8 +21,8 @@ const TARIFF = {
   },
 };
 
-function roundClp(v) {
-  return Math.max(TARIFF.minClp, Math.round(v / 100) * 100);
+function roundUsd(v) {
+  return Math.max(TARIFF.minUsd, Math.round(v * 100) / 100);
 }
 
 /**
@@ -32,7 +32,7 @@ function roundClp(v) {
  * @param {number} params.weightKg
  * @param {number} [params.volumeM3]
  * @param {string} [params.service] normal | express | programado
- * @returns {{distanceKm:number, priceClp:number, currency:string, breakdown:Object}}
+ * @returns {{distanceKm:number, priceUsd:number, currency:string, breakdown:Object}}
  */
 function quote({ origin, destination, weightKg = 0, volumeM3 = 0, service = 'normal' }) {
   if (
@@ -45,19 +45,20 @@ function quote({ origin, destination, weightKg = 0, volumeM3 = 0, service = 'nor
   const mult = TARIFF.serviceMultiplier[service] || 1;
   // factor 1.3: aproxima la distancia por calles a partir de la línea recta
   const distanceKm = Math.round(haversineKm(origin, destination) * 1.3 * 10) / 10;
+  const r2 = (v) => Math.round(v * 100) / 100;
   const breakdown = {
-    base: TARIFF.baseClp,
-    distancia: Math.round(distanceKm * TARIFF.perKm),
-    peso: Math.round((Number(weightKg) || 0) * TARIFF.perKg),
-    volumen: Math.round((Number(volumeM3) || 0) * TARIFF.perM3),
+    base: TARIFF.baseUsd,
+    distancia: r2(distanceKm * TARIFF.perKm),
+    peso: r2((Number(weightKg) || 0) * TARIFF.perKg),
+    volumen: r2((Number(volumeM3) || 0) * TARIFF.perM3),
     servicio: service,
     multiplicador: mult,
   };
   const subtotal = breakdown.base + breakdown.distancia + breakdown.peso + breakdown.volumen;
   return {
     distanceKm,
-    priceClp: roundClp(subtotal * mult),
-    currency: 'CLP',
+    priceUsd: roundUsd(subtotal * mult),
+    currency: 'USD',
     breakdown,
   };
 }

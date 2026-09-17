@@ -18,16 +18,18 @@ npm start          # o: node server.js  (PORT=4000 npm start para otro puerto)
 |---|---|
 | <http://localhost:3000/> | **Portal TMS** (operaciones): panel, pedidos, flota, planificación, monitoreo, empresas |
 | <http://localhost:3000/portal> | **Portal público** de contratación de fletes y seguimiento (mobile-first) |
-| <http://localhost:3000/docs> | Documentación de las tres APIs |
+| <http://localhost:3000/conductor> | **App del conductor** (móvil): ruta GPS, escáner de entrega, novedades |
+| <http://localhost:3000/docs> | Documentación de las APIs y del módulo de carga |
 
 ```bash
 npm test           # pruebas del optimizador y del cotizador
 ```
 
-Al primer arranque se cargan datos de demostración (Santiago de Chile):
-3 empresas cliente con API key, 18 pedidos repartidos entre ellas,
-4 vehículos (uno madre nodriza) y 4 conductores. El botón **“Reiniciar
-demo”** del TMS restaura todo.
+Al primer arranque se cargan datos de demostración (Guayaquil, Ecuador):
+3 empresas cliente con API key (incluye DEMACO como ERP), 18 pedidos con
+sus bultos, 5 vehículos (uno madre nodriza y uno **no apto** en
+mantenimiento) y 4 conductores. El botón **“Reiniciar demo”** del TMS
+restaura todo. Precios en USD.
 
 ## Arquitectura
 
@@ -59,6 +61,32 @@ demo”** del TMS restaura todo.
   entran a un único pool y se planifican en rutas consolidadas; cada
   pedido conserva su empresa de origen y su fuente (`portal`, `api-erp`,
   `api-ecommerce`, `tms`).
+
+## Módulo de carga del camión
+
+Flujo completo desde el plan del ERP hasta la entrega confirmada:
+
+1. **Importar plan** — `POST /api/v1/import` acepta el mismo JSON que se
+   envía a Driv.in (`{ clients: [...] }`; ejemplo en
+   `samples/plan-demaco.json`). Cada *order* del plan es un **bulto** con
+   su código de barras (`alt_code`); `units_2` = kg, `units_3` = cm³.
+2. **Rutas propuestas → aprobadas** — el optimizador propone rutas solo
+   con vehículos **aptos para viajar** (campo `apto`); el usuario las
+   aprueba en Planificación (mapa con rutas por vehículo).
+3. **Lista de carga física** — al aprobar se genera la secuencia:
+   volumétrica pesada (sacos/empastes) a la **delantera central**, tubos
+   a la **parrilla**, paquetería al cajón en **orden inverso de entrega**
+   (LIFO). Confirmación por **escáner de código de barras** (lector
+   Bluetooth HID) o por botón.
+4. **Facturación electrónica** — con la carga completa se generan la
+   guía de remisión y la factura por parada (clave de acceso 49 dígitos,
+   módulo 11), se envía el payload al webservice configurado
+   (`PUT /api/v1/billing-config`) y quedan los formatos imprimibles en
+   `/print/route/{id}`.
+5. **App del conductor** (`/conductor`, móvil) — sigue la ruta por GPS;
+   al llegar, la parada queda *en sitio* hasta que el conductor confirma
+   cada bulto con el mismo escáner, con **entregas parciales,
+   devoluciones y rechazos** con motivo y receptor.
 
 ## Funcionalidades del TMS
 
@@ -119,13 +147,19 @@ Documentación completa con ejemplos en `/docs`.
 ```
 server.js            Servidor HTTP: 3 APIs + estáticos, sin dependencias
 src/optimizer.js     Motor VRP: sweep, NN, 2-opt, recolecciones, nodriza
-src/pricing.js       Motor de cotización de fletes (CLP)
+src/loading.js       Módulo de carga: clasificación de bultos y secuencia física
+src/importer.js      Importador de planes (formato Driv.in del ERP)
+src/billing.js       Guías y facturas electrónicas (clave de acceso módulo 11)
+src/printview.js     Formatos de impresión de ruta (guía + factura)
+src/pricing.js       Motor de cotización de fletes (USD)
 src/simulator.js     Simulador GPS (mueve la flota, cierra paradas, emite POD)
 src/store.js         Almacén en memoria con persistencia JSON, tenants y seed
 src/webhooks.js      Webhooks globales + webhook por empresa cliente
 src/geo.js           Haversine, interpolación, rumbo, centroides
-public/index.html    TMS (SPA de operaciones)
+public/index.html    TMS (SPA de operaciones, incluye vista Carga)
 public/portal.html   Portal público mobile-first (cotizar/contratar/seguir)
+public/conductor.html App del conductor (ruta GPS, escáner, novedades)
+samples/             Plan de ejemplo del ERP (formato Driv.in)
 public/docs.html     Documentación de las APIs
 test/run-tests.js    Pruebas del algoritmo y del cotizador
 data/db.json         Base de datos JSON (se genera al arrancar; ignorada en git)

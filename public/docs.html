@@ -43,6 +43,7 @@
     <a href="#auth">Autenticación</a>
     <a href="#integracion">API de integración</a>
     <a href="#publica">API pública (portal)</a>
+    <a href="#carga">Módulo de carga</a>
     <a href="#orders">Pedidos</a>
     <a href="#vehicles">Vehículos</a>
     <a href="#drivers">Conductores</a>
@@ -113,11 +114,31 @@ X-API-Key: mk_xxxxxxxxxxxxxxxx
 }
 
 → 200
-{ "data": { "distanceKm": 9.5, "priceClp": 30000, "currency": "CLP",
-            "breakdown": { "base": 12000, "distancia": 9025, "peso": 7200,
-                           "volumen": 6000, "servicio": "express",
+{ "data": { "distanceKm": 9.5, "priceUsd": 30.15, "currency": "USD",
+            "breakdown": { "base": 8, "distancia": 8.08, "peso": 6,
+                           "volumen": 4.8, "servicio": "express",
                            "multiplicador": 1.35 } } }</code></pre>
     <p class="muted">El resto de esta página documenta el API interna del TMS (<code>/api/v1</code>).</p>
+
+    <h2 id="carga">Módulo de carga del camión</h2>
+    <p>Flujo completo desde el plan del ERP hasta la entrega confirmada:</p>
+    <table>
+      <tr><th>Paso</th><th>Qué ocurre</th></tr>
+      <tr><td>1. Importar</td><td><code>POST /api/v1/import</code> recibe el plan en el mismo formato que se envía a Driv.in (<code>{ clients: [...] }</code>). Cada <em>order</em> del plan se registra como un <strong>bulto</strong> con su código de barras (<code>alt_code</code>); <code>units_2</code> se interpreta como kg y <code>units_3</code> como cm³.</td></tr>
+      <tr><td>2. Optimizar</td><td><code>POST /api/v1/optimize</code> genera rutas <strong>propuestas</strong> usando solo vehículos <strong>aptos</strong> (campo <code>apto</code> del vehículo) y respetando capacidad en kg y m³.</td></tr>
+      <tr><td>3. Aprobar</td><td><code>POST /api/v1/routes/{id}/approve</code>: el usuario aprueba la propuesta y se genera la <strong>lista de carga</strong> en orden físico: volumétrica pesada a la delantera central, tubos a la parrilla, paquetería en orden inverso de entrega (LIFO).</td></tr>
+      <tr><td>4. Cargar</td><td><code>POST /api/v1/routes/{id}/load</code> con <code>{ "barcode": "..." }</code> (escáner Bluetooth) o <code>{ "seq": n }</code> (botón). Rechaza códigos ajenos a la ruta y bultos repetidos (HTTP 409).</td></tr>
+      <tr><td>5. Documentos</td><td>Al confirmar el último bulto se generan la <strong>guía de remisión y la factura</strong> por parada (clave de acceso de 49 dígitos, módulo 11), se envía el payload al webservice configurado en <code>PUT /api/v1/billing-config</code> y quedan el formato imprimible en <code>/print/route/{id}</code> y el JSON en <code>GET /routes/{id}/documents</code>.</td></tr>
+      <tr><td>6. Despachar</td><td><code>POST /routes/{id}/start</code> solo procede con la carga completa. El GPS avanza y al llegar a cada cliente la parada queda <code>en_sitio</code> esperando al conductor.</td></tr>
+      <tr><td>7. Entregar</td><td><code>POST /routes/{id}/deliver</code> con <code>{ orderId, resultado, bultoBarcodes, motivo, receptor }</code>. <code>resultado</code>: <code>entregado</code> · <code>entrega_parcial</code> · <code>devolucion</code> · <code>rechazado</code>. El conductor usa la app móvil <a href="/conductor">/conductor</a> con el mismo escáner de la carga.</td></tr>
+    </table>
+<pre><code>POST /api/v1/routes/RUT-1021/load
+{ "barcode": "ST-26007438-B87-1000" }
+
+→ 200
+{ "data": { "bulto": { "seq": 1, "zone": "delantera-central", "loaded": true },
+            "summary": { "loaded": 1, "total": 56, "complete": false },
+            "loadStatus": "en_carga", "documentsGenerated": false } }</code></pre>
 
     <h2 id="orders">Pedidos</h2>
     <p>Un pedido representa una <em>entrega</em> o una <em>recolección</em> georreferenciada, con peso, volumen y ventana horaria.</p>

@@ -22,8 +22,10 @@
       <a href="#/pedidos" data-view="pedidos" class="nav-item"><span>📦</span> Pedidos</a>
       <a href="#/flota" data-view="flota" class="nav-item"><span>🚛</span> Flota</a>
       <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
+      <a href="#/carga" data-view="carga" class="nav-item"><span>📦</span> Carga</a>
       <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
       <a href="#/empresas" data-view="empresas" class="nav-item"><span>🏢</span> Empresas</a>
+      <a href="/conductor" target="_blank" class="nav-item"><span>📱</span> App conductor</a>
       <a href="#/webhooks" data-view="webhooks" class="nav-item"><span>🔗</span> Integraciones</a>
       <a href="/portal" target="_blank" class="nav-item"><span>🌐</span> Portal público</a>
       <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
@@ -67,6 +69,7 @@
             <option value="recolectado">Recolectado</option>
             <option value="no_entregado">No entregado</option>
           </select>
+          <button class="btn btn-secondary" id="btn-import-plan">⇪ Importar plan (JSON)</button>
           <button class="btn btn-primary" id="btn-new-order">+ Nuevo pedido</button>
         </div>
       </header>
@@ -144,6 +147,23 @@
         </div>
         <div class="plan-map card">
           <div id="map-plan" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ CARGA ============================ -->
+    <section id="view-carga" class="view hidden">
+      <header class="view-header">
+        <h1>Carga del camión</h1>
+        <p class="muted">Lista de carga por vehículo: volumétrica primero (pesados a la delantera central, tubos a la parrilla) y paquetería en orden inverso de entrega. Confirma cada bulto con el escáner de códigos de barras o con el botón.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Rutas aprobadas</h3>
+          <div id="load-routes" class="routes-list"></div>
+        </div>
+        <div class="card" id="load-detail-card">
+          <div id="load-detail"><p class="muted">Selecciona una ruta aprobada para ver su lista de carga.</p></div>
         </div>
       </div>
     </section>

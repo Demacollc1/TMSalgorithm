@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Macotrans — Contrata tu flete</title>
-  <meta name="description" content="Macotrans: fletes y logística de última milla en Santiago. Cotiza y contrata en línea, con seguimiento en tiempo real." />
+  <meta name="description" content="Macotrans: fletes y logística de última milla en Guayaquil. Cotiza y contrata en línea, con seguimiento en tiempo real." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
   <style>
     :root {
@@ -183,7 +183,7 @@
 
   <section class="hero">
     <h1>Tu flete, cotizado y agendado <em>en 2 minutos</em></h1>
-    <p>Transporte y logística de última milla en Santiago. Precio al instante, seguimiento en línea y comprobante de entrega digital.</p>
+    <p>Transporte y logística de última milla en Guayaquil. Precio al instante, seguimiento en línea y comprobante de entrega digital.</p>
     <div class="badges">
       <span class="badge">✔ Precio inmediato</span>
       <span class="badge">✔ Seguimiento GPS</span>
@@ -202,11 +202,11 @@
       <div id="panel-contratar">
         <form id="form-flete">
           <div class="field">
-            <label>¿Desde qué comuna retiramos?</label>
+            <label>¿Desde qué sector retiramos?</label>
             <select id="f-origen" required></select>
           </div>
           <div class="field">
-            <label>¿En qué comuna entregamos?</label>
+            <label>¿En qué sector entregamos?</label>
             <select id="f-destino" required></select>
           </div>
           <div class="field">
@@ -303,24 +303,24 @@
   </main>
 
   <footer>
-    Macotrans SpA · Santiago de Chile · <a href="mailto:contacto@macotrans.cl">contacto@macotrans.cl</a><br />
+    Macotrans S.A. · Guayaquil, Ecuador · <a href="mailto:contacto@macotrans.ec">contacto@macotrans.ec</a><br />
     Portal de demostración — <a href="/">acceso operaciones (TMS)</a>
   </footer>
 
   <script>
     'use strict';
-    // Comunas de referencia con coordenadas aproximadas (Gran Santiago)
+    // Sectores de referencia con coordenadas aproximadas (Guayaquil y alrededores)
     const COMUNAS = {
-      'Santiago Centro': [-33.4489, -70.6693], 'Providencia': [-33.4212, -70.6106],
-      'Las Condes': [-33.4172, -70.6015], 'Vitacura': [-33.3901, -70.5754],
-      'Ñuñoa': [-33.4548, -70.6072], 'La Florida': [-33.5423, -70.5638],
-      'Maipú': [-33.4826, -70.7541], 'Pudahuel': [-33.4419, -70.7583],
-      'San Miguel': [-33.4972, -70.6535], 'Macul': [-33.4907, -70.6011],
-      'Peñalolén': [-33.4903, -70.5741], 'Recoleta': [-33.4059, -70.6408],
-      'Independencia': [-33.4093, -70.6640], 'Conchalí': [-33.3949, -70.6791],
-      'Renca': [-33.4040, -70.6883], 'Cerrillos': [-33.5169, -70.7204],
-      'San Joaquín': [-33.5089, -70.6284], 'Quilicura': [-33.3600, -70.7330],
-      'Huechuraba': [-33.3695, -70.6350], 'Estación Central': [-33.4599, -70.6950],
+      'Centro': [-2.1946, -79.8830], 'Urdesa': [-2.1681, -79.9053],
+      'Kennedy': [-2.1687, -79.8973], 'Alborada': [-2.1349, -79.9042],
+      'La Garzota': [-2.1417, -79.8942], 'Sauces': [-2.1207, -79.8969],
+      'Los Ceibos': [-2.1633, -79.9401], 'Miraflores': [-2.1789, -79.9182],
+      'Samborondón': [-2.1327, -79.8646], 'Durán': [-2.1794, -79.8206],
+      'Vía a la Costa': [-2.1901, -79.9885], 'Vía Daule': [-2.1130, -79.9260],
+      'Sur - Centenario': [-2.2290, -79.8952], 'Sur - Guasmo': [-2.2513, -79.8890],
+      'Terminal Terrestre': [-2.1408, -79.8813], 'Mapasingue': [-2.1500, -79.9260],
+      'Bastión Popular': [-2.0930, -79.9100], 'Mucho Lote': [-2.0990, -79.8930],
+      'Santa Leonor': [-2.1329, -79.8855], 'Malecón': [-2.1946, -79.8794],
     };
 
     const $ = (id) => document.getElementById(id);
@@ -367,7 +367,7 @@
           phone: $('f-telefono').value.trim(),
           email: $('f-email').value.trim(),
         },
-        notes: 'Retiro en comuna: ' + $('f-origen').value,
+        notes: 'Retiro en sector: ' + $('f-origen').value,
       };
     }
     function showError(id, msg) {
@@ -375,7 +375,7 @@
       el.textContent = msg;
       el.classList.toggle('hidden', !msg);
     }
-    const fmtCLP = (n) => '$' + n.toLocaleString('es-CL');
+    const fmtUSD = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     // cotizar → confirmar
     $('form-flete').addEventListener('submit', async (e) => {
@@ -391,7 +391,7 @@
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'No se pudo cotizar');
         lastQuote = json.data;
-        $('quote-price').textContent = fmtCLP(lastQuote.priceClp);
+        $('quote-price').textContent = fmtUSD(lastQuote.priceUsd);
         $('quote-detail').textContent =
           `${lastQuote.distanceKm} km aprox · servicio ${p.service} · IVA incluido`;
         $('quote-result').classList.remove('hidden');
@@ -417,7 +417,7 @@
         $('flete-exito').classList.remove('hidden');
         $('exito-codigo').textContent = json.data.trackingCode;
         $('exito-detalle').textContent =
-          `Valor: ${fmtCLP(json.data.priceClp)} · Fecha: ${json.data.date}. Te contactaremos para coordinar el retiro.`;
+          `Valor: ${fmtUSD(json.data.priceUsd)} · Fecha: ${json.data.date}. Te contactaremos para coordinar el retiro.`;
       } catch (err) {
         showError('flete-error', err.message);
       } finally {
@@ -470,7 +470,7 @@
             <div><div class="t-label">${LABELS[s][0]}</div><div class="t-sub">${LABELS[s][1]}</div></div>
           </li>`).join('');
         $('track-extra').textContent = t.vehiclePosition
-          ? 'Posición del vehículo actualizada: ' + new Date(t.vehiclePosition.at).toLocaleTimeString('es-CL')
+          ? 'Posición del vehículo actualizada: ' + new Date(t.vehiclePosition.at).toLocaleTimeString('es-EC')
           : (t.status === 'no_entregado' ? 'Hubo un problema con la entrega. Te contactaremos.' : '');
         $('track-result').classList.remove('hidden');
       } catch (err) {

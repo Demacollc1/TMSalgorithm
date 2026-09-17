@@ -1,0 +1,1281 @@
+{
+  "clients": [
+    {
+      "code": 537,
+      "address": "AV. DE LAS AMERICAS CDLA. SIMON BOLIVAR",
+      "reference": "MZ. 5 SOLAR 102",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.1521713",
+      "lng": "-79.8866617",
+      "name": "AMERICAS GUAYAQUIL DEMACO",
+      "client_name": "AMERICAS GUAYAQUIL DEMACO",
+      "contact_name": "AMERICAS GUAYAQUIL DEMACO",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "ST-26007565-M0'144553'6.01'1-B87",
+          "alt_code": "ST-26007565-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "E2460.02URADHBLC",
+              "description": "DESAGUE SIFON 1 1/4\" PVC BL ACORDEON C/REJ FV",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.51,
+              "units_3": 22326.304,
+              "custom_1": 6000
+            },
+            {
+              "code": "E103.41.27B.01DHNI",
+              "description": "CABEZA ALTA ESTANDAR P/MEZCLA DUCHA/TINA Y LLAV CAMPANOLA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.18,
+              "units_3": 720,
+              "custom_1": 7000
+            },
+            {
+              "code": "09280",
+              "description": "DESAGUE SIFON 1 1/2\" PVC ACORDEON  BLANCO AMERIC HOME",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 1.23,
+              "units_3": 22800,
+              "custom_1": 9000
+            },
+            {
+              "code": "0928",
+              "description": "DESAGUE SIFON 1 1/4\" PVC ACORDEON  BLANCO AMERIC HOME",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 1.194,
+              "units_3": 9900,
+              "custom_1": 10000
+            },
+            {
+              "code": "AC.1",
+              "description": "ANILLO CERA INODORO CON GUIA FV",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.54,
+              "units_3": 2250,
+              "custom_1": 1000
+            },
+            {
+              "code": "E220.01/71CR",
+              "description": "LLAVE LAVABO CAPRI CR FV",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.455,
+              "units_3": 1386,
+              "custom_1": 2000
+            },
+            {
+              "code": "C2230/71CR",
+              "description": "LLAVE LAVABO CAPRI RESINA ACETAL CR FV",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.333,
+              "units_3": 2535,
+              "custom_1": 3000
+            },
+            {
+              "code": "1179",
+              "description": "TUBO ABASTO PLASTICO 1/2\"X1/2\" 40CM RH/RH FLEXIBLE LAVABO AS",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.33,
+              "units_3": 1899.2,
+              "custom_1": 4000
+            },
+            {
+              "code": "E586.00.07DH",
+              "description": "REJILLA INOX PARA PISO CUERPO LATON 50mm FV",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.298,
+              "units_3": 120.1,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007552-M0'091311'4.23'1-B87",
+          "alt_code": "ST-26007552-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4738",
+              "description": "CEMENTO CONTACTO AFRICANO LITRO",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 2.295,
+              "units_3": 2856.0263,
+              "custom_1": 2000
+            },
+            {
+              "code": "4759",
+              "description": "CEMENTO ASFALTICO 0.5KG IMPTEK",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.728,
+              "units_3": 2125.38,
+              "custom_1": 25000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007552-M0'091401'20.00'1-B87",
+          "alt_code": "ST-26007552-B87-9000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4741",
+              "description": "CEMENTO ASFALTICO 20KG IMPTEK",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 20,
+              "units_3": 26140.5,
+              "custom_1": 9000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007552-M0'091613'6.24'1-B87",
+          "alt_code": "ST-26007552-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4728",
+              "description": "CHOVA AL FRIO ALUMBAND ROLLO ALUMINIO 2MM 10CMX10M IMPTEK",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 4.324,
+              "units_3": 4808.12,
+              "custom_1": 4000
+            },
+            {
+              "code": "4731",
+              "description": "CHOVA AL FRIO ALUMBAND ROLLO ALUMINIO 2MM 20CMX5M IMPTEK",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 2.038,
+              "units_3": 2260.8,
+              "custom_1": 26000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007552-M0'143826'8.67'1-B87",
+          "alt_code": "ST-26007552-B87-8000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "7759",
+              "description": "TEFLON 3/4\" 19mmx15mx0.020mm ANCHO AMARILLO IMP",
+              "units": 250,
+              "units_1": 1,
+              "units_2": 7.25,
+              "units_3": 42535,
+              "custom_1": 8000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007552-M0'143833'0.01'1-B87",
+          "alt_code": "ST-26007552-B87-22000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "77620",
+              "description": "TEFLON 10 YD 12mm TIPO ALEMAN ROJO",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 0.01,
+              "units_3": 47.49,
+              "custom_1": 22000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007550-M0'144457'0.40'1-B87",
+          "alt_code": "ST-26007550-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "TK4003",
+              "description": "INTERRUPTOR 3 VIAS 1 MODULO LIVING NOW",
+              "units": 14,
+              "units_1": 1,
+              "units_2": 0.21,
+              "units_3": 336,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007548-B87'·A'150258'PAL'1-B87",
+          "alt_code": "ST-26007548-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "91004101",
+              "description": "BONDEX STANDARD CERAMICA 25 KG. INTACO",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 100,
+              "units_3": 54000,
+              "custom_1": 2000
+            },
+            {
+              "code": "SI120102",
+              "description": "SIKA EMPASTE INTERIOR BLANCO 20kg TC/10M (5%)",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 60,
+              "units_3": 43344,
+              "custom_1": 4000
+            },
+            {
+              "code": "SI403332",
+              "description": "SIKACERAM STANDARD 25kg TC/4M (5%)",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 50,
+              "units_3": 28896,
+              "custom_1": 6000
+            },
+            {
+              "code": "SI106568",
+              "description": "SIKATOP EMPASTE EXTERIOR 20kg BLANCO  C/RESINA TC/04M(5%)",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 40,
+              "units_3": 28896,
+              "custom_1": 7000
+            },
+            {
+              "code": "91003092",
+              "description": "MULTIMIX 125 MORTERO MULTIUSO 5 KG. INTACO",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 12000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007548-M0'093156'9.14'1-B87",
+          "alt_code": "ST-26007548-B87-21000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI469477",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA DE POLIURETANO 500ML",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 2.372,
+              "units_3": 3117.624,
+              "custom_1": 21000
+            },
+            {
+              "code": "SI756947",
+              "description": "SIKAFLEX 11FC PURFORM BLANCO SELLADOR Y ADHESIVO PU",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 23000
+            },
+            {
+              "code": "SI837767",
+              "description": "SIKASEAL MULT CONSTRUCCION 132 BLANCO C5061 CATR 280",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.668,
+              "units_3": 942,
+              "custom_1": 24000
+            },
+            {
+              "code": "SI805085",
+              "description": "SIKASEAL 170 TRANSPAREN C5054 280GR  CTR /12",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.002,
+              "units_3": 1413,
+              "custom_1": 25000
+            },
+            {
+              "code": "SI644658",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA DE POLIURETANO 750ML 1/AÑO",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 3.428,
+              "units_3": 4510.6,
+              "custom_1": 19000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007548-M0'093229'5.00'1-B87",
+          "alt_code": "ST-26007548-B87-16000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI718334",
+              "description": "SIKATOP 144 EXPERTO BLANCO 5kg IMPERMEABILIZANTE CISTERNA(5%)",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 5,
+              "units_3": 1306.25,
+              "custom_1": 16000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007548-M0'093230'5.00'1-B87",
+          "alt_code": "ST-26007548-B87-9000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI562786",
+              "description": "SIKA SELLADOR 5kg TC/10M",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 5,
+              "units_3": 6432.97,
+              "custom_1": 9000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'112442'4.19'1-B87",
+          "alt_code": "ST-26007497-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "DW-561250C",
+              "description": "BROCA CONCRETO CILI 1/2\"X12\" S/GUIA PERCUCION BLIS DW",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 1.05,
+              "units_3": 264.95,
+              "custom_1": 1000
+            },
+            {
+              "code": "DW-5417",
+              "description": "BROCA SDS PLUS CONCRETO CARBUR 1/4\"x4\"x6\" 2ESTRIA C/GUIA DW",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.24,
+              "units_3": 24.01,
+              "custom_1": 2000
+            },
+            {
+              "code": "DW-130018C",
+              "description": "BROCA METAL MADERA HSS ACERO RAPIDO 1/8\" X2 UN BLISTER DW",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.1,
+              "units_3": 750,
+              "custom_1": 3000
+            },
+            {
+              "code": "DW-130532C",
+              "description": "BROCA METAL MADERA HSS ACERO RAPIDO 5/32\" BLISTER DW",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.05,
+              "units_3": 375,
+              "custom_1": 5000
+            },
+            {
+              "code": "DW-530650C",
+              "description": "BROCA CONCRETO CILI 1/4\"X4\" S/GUIA PERCUCION BLIS DW",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 0.36,
+              "units_3": 41.212,
+              "custom_1": 6000
+            },
+            {
+              "code": "DW-8310",
+              "description": "DISCO FLAP ZIRCON 4 1/2\" 115MM #120 7/8\" ACERO INOX DW",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.8,
+              "units_3": 2880,
+              "custom_1": 19000
+            },
+            {
+              "code": "DW-540950C",
+              "description": "BROCA CONCRETO CILI 3/8\"X6\" S/GUIA PERCUCION BLIS DW",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.162,
+              "units_3": 22.608,
+              "custom_1": 7000
+            },
+            {
+              "code": "DWDW44540",
+              "description": "DISCO DESBASTE METAL A24R-BF 4 1/2\"X1/4\"X7/8\" ACODADO DW",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.7,
+              "units_3": 720,
+              "custom_1": 25000
+            },
+            {
+              "code": "DW-170018B",
+              "description": "BROCA METAL MADERA HSS ACERO RAPIDO 1/8\"x65mm SUELTO DW",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.05,
+              "units_3": 17.5,
+              "custom_1": 8000
+            },
+            {
+              "code": "DW-44601",
+              "description": "DISCO CORTE METAL TW NEGRO 4 1/2\"x1/16\"X7/8\" PLANO DW",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 11000
+            },
+            {
+              "code": "DWDW1924",
+              "description": "BROCA METAL MADERA DORADA HSS 3/8\"(9.5X92X127MM) C/GUIA DW",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 40000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'133831'8.30'2-B87",
+          "alt_code": "ST-26007497-B87-18000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N69957321897",
+              "description": "SILICONA ACETICA 280G TRANSPARENTE TEKBOND",
+              "units": 48,
+              "units_1": 1,
+              "units_2": 16.32,
+              "units_3": 49808.16,
+              "custom_1": 18000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'133951'3.58'1-B87",
+          "alt_code": "ST-26007497-B87-17000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N69957321900",
+              "description": "SILICONA ACETICA 280G BLANCO TEKBOND",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 3.44,
+              "units_3": 9039.2,
+              "custom_1": 17000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'134038'0.87'1-B87",
+          "alt_code": "ST-26007497-B87-27000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N69957326630",
+              "description": "SILICONA ACETICA BLISTER 50GR BLANCO  TEKBOND",
+              "units": 12,
+              "units_1": 1,
+              "units_2": 0.816,
+              "units_3": 1392,
+              "custom_1": 27000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'134108'1.96'3-B87",
+          "alt_code": "ST-26007497-B87-47000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66254423242",
+              "description": "PINTURA SPRAY NEGRO BRILLANTE USO GENERAL 400ML TEKBOND",
+              "units": 18,
+              "units_1": 1,
+              "units_2": 5.58,
+              "units_3": 13700.34,
+              "custom_1": 47000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'135450'8.06'1-B87",
+          "alt_code": "ST-26007497-B87-13000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66261199789",
+              "description": "LIJA HIERRO K246 #120 NORTON",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.102,
+              "units_3": 181.5,
+              "custom_1": 13000
+            },
+            {
+              "code": "N70184632370",
+              "description": "DISCO CORTE DIAMANT 4\" 110MM TURBO PRO FINO 7/8\"X1MM NO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 1.15,
+              "units_3": 474.9,
+              "custom_1": 45000
+            },
+            {
+              "code": "N66254423213",
+              "description": "PINTURA SPRAY AZUL OSCURO USO GENERAL 400ML TEKBOND",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 53000
+            },
+            {
+              "code": "N66254423252",
+              "description": "PINTURA SPRAY VERDE USO GENERAL 400ML TEKBOND",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 54000
+            },
+            {
+              "code": "N69957320326",
+              "description": "DISCO FLAP DESBASTE R828 #80 ORIGINAL 115x22 P/ACERO NORTON",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 2.992,
+              "units_3": 3617.28,
+              "custom_1": 14000
+            },
+            {
+              "code": "N8834113516",
+              "description": "LIJA HIERRO K388 #36 PRO NORTON",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 1.64,
+              "units_3": 5040,
+              "custom_1": 59000
+            },
+            {
+              "code": "N70184624364",
+              "description": "DISCO CORTE DIAMANT 4\" 110MM SEGM PRO 7/8\"X2.4MM NO",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.595,
+              "units_3": 94.985,
+              "custom_1": 61000
+            },
+            {
+              "code": "N70184624365",
+              "description": "DISCO CORTE DIAMANT 4\" 110MM TURBO PRO 7/8\"X2.4MM NO",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 62000
+            },
+            {
+              "code": "N70184647067",
+              "description": "DISCO CORTE DIAMANT 7\" 180MM TURBO CLASSIC 7/8\"X2.4MM NO",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 63000
+            },
+            {
+              "code": "N5539541824",
+              "description": "LIJA AGUA T277 GR #150 230X280 NORTON",
+              "units": 50,
+              "units_1": 1,
+              "units_2": 0.95,
+              "units_3": 3220,
+              "custom_1": 28000
+            },
+            {
+              "code": "N69957326453",
+              "description": "ADHESIVO CIANO 725 INDUSTRIAL BLISTER (20GR)",
+              "units": 40,
+              "units_1": 1,
+              "units_2": 1.52,
+              "units_3": 3220,
+              "custom_1": 37000
+            },
+            {
+              "code": "N78072708252",
+              "description": "CINTA DE ESPUMA DOBLE FAZZ USO INTERNO 12mmx 1.5m",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 43000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007497-M0'150000'1.16'1-B87",
+          "alt_code": "ST-26007497-B87-60000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N70184647066",
+              "description": "DISCO CORTE DIAMANTE 4\" 110MM CONT CLASSIC 7/8\"X2.4MM NO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 1.11,
+              "units_3": 3.454,
+              "custom_1": 60000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007478-M0'110842'6.45'1-B87",
+          "alt_code": "ST-26007478-B87-13000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "ER25027",
+              "description": "CODO PVC DESAGUE 50mmx90° EC IMP",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 1.7,
+              "units_3": 9720,
+              "custom_1": 13000
+            },
+            {
+              "code": "ER25015",
+              "description": "CODO PVC DESAGUE 50mmx45° EC IMP",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 1.44,
+              "units_3": 11040,
+              "custom_1": 14000
+            },
+            {
+              "code": "ER25558",
+              "description": "TAPON HEMBRA PVC DESAGUE 50MM IMP",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.36,
+              "units_3": 831.1,
+              "custom_1": 17000
+            },
+            {
+              "code": "ER25390",
+              "description": "REDUCTOR PVC DESAGUE 75mm A 50mm  C/C IMP",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 2.16,
+              "units_3": 12800,
+              "custom_1": 19000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007478-M0'111051'14.06'1-B87",
+          "alt_code": "ST-26007478-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925402",
+              "description": "POLILIMPIA 4000cc",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 6.404,
+              "units_3": 11232,
+              "custom_1": 4000
+            },
+            {
+              "code": "925472",
+              "description": "POLIPEGA 3785cc (GL)",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 7.372,
+              "units_3": 8620.86,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007478-M0'132905'4.96'1-B87",
+          "alt_code": "ST-26007478-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "PD926930",
+              "description": "TEE PVC DESAGUE 50mm CC PLASTIDOR",
+              "units": 40,
+              "units_1": 1,
+              "units_2": 4.4,
+              "units_3": 23750,
+              "custom_1": 7000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007478-M0'132929'0.05'1-B87",
+          "alt_code": "ST-26007478-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "19335E",
+              "description": "REDUCTOR PVC DESAGUE 160mm A 110mm TERMOFORMADO",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 3,
+              "units_3": 19091.2,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007438-B87'#A'094822'TU6'1-B87",
+          "alt_code": "ST-26007438-B87-28000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925983",
+              "description": "TUBO PVC PRESION 20mmx6mx2.00 Mpa EC PLASTIGAMA",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 13.8,
+              "units_3": 37680,
+              "custom_1": 28000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007438-B87'#A'094824'TU6'1-B87",
+          "alt_code": "ST-26007438-B87-32000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926004",
+              "description": "TUBO PVC PRESION 32mmx6mx1.25 Mpa EC PLASTIGAMA",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 27.78,
+              "units_3": 96460.8,
+              "custom_1": 32000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007438-M0'094424'36.28'1-B87",
+          "alt_code": "ST-26007438-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "14933",
+              "description": "ADAPTADOR HEMBRA PVC 25mmx20x1/2\" LISO ROSCA LARGO",
+              "units": 40,
+              "units_1": 1,
+              "units_2": 0.84,
+              "units_3": 1923.2,
+              "custom_1": 1000
+            },
+            {
+              "code": "24487",
+              "description": "ADAPTADOR MACHO PVC 25mmx3/4\" LISO ROSCA IMP PN10",
+              "units": 120,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 3000
+            },
+            {
+              "code": "15660",
+              "description": "BRIDA PVC CON CUELLO 90mm IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 2.888,
+              "units_3": 6801.24,
+              "custom_1": 7000
+            },
+            {
+              "code": "926486",
+              "description": "ADAPTADOR MACHO PVC 25mmx3/4\" LISO ROSCA PLASTIGAMA",
+              "units": 15,
+              "units_1": 1,
+              "units_2": 0.195,
+              "units_3": 257.577,
+              "custom_1": 4000
+            },
+            {
+              "code": "15010",
+              "description": "ADAPTADOR MACHO PVC 32mmx1\" LISO ROSCA IMP PN10",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.33,
+              "units_3": 628,
+              "custom_1": 5000
+            },
+            {
+              "code": "15791",
+              "description": "BUSHING PVC PRESION 25mm A 20mm IMP PN10",
+              "units": 25,
+              "units_1": 1,
+              "units_2": 0.125,
+              "units_3": 200,
+              "custom_1": 8000
+            },
+            {
+              "code": "15739",
+              "description": "BUSHING PVC PRESION 63mm A 50mm IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.244,
+              "units_3": 530.66,
+              "custom_1": 9000
+            },
+            {
+              "code": "23897",
+              "description": "UNION UNIVERSAL PVC 20mm CC LISO PEGABLE IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.04,
+              "units_3": 78.48,
+              "custom_1": 45000
+            },
+            {
+              "code": "23377",
+              "description": "UNION PVC PRESION 40mm CC IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.184,
+              "units_3": 471,
+              "custom_1": 47000
+            },
+            {
+              "code": "16500",
+              "description": "CODO PVC PRESION 25mmx45° EC IMP PN10",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 0.36,
+              "units_3": 1260,
+              "custom_1": 10000
+            },
+            {
+              "code": "15739",
+              "description": "BUSHING PVC PRESION 63mm A 50mm IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.244,
+              "units_3": 530.66,
+              "custom_1": 52000
+            },
+            {
+              "code": "3780",
+              "description": "VALVULA ESFERICA PVC 20mm IMP",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 55000
+            },
+            {
+              "code": "17182ER",
+              "description": "COLLARIN PE 90mmx1\" IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 1.44,
+              "units_3": 5040,
+              "custom_1": 57000
+            },
+            {
+              "code": "20536",
+              "description": "TEE PVC PRESION 50mm CC IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.62,
+              "units_3": 2850,
+              "custom_1": 48000
+            },
+            {
+              "code": "15962",
+              "description": "BUSHING PVC PRESION 32mm A 25mm IMP PN10",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.1,
+              "units_3": 176.625,
+              "custom_1": 49000
+            },
+            {
+              "code": "15738",
+              "description": "BUSHING PVC PRESION 50mm A 40mm IMP",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.15,
+              "units_3": 437.5,
+              "custom_1": 50000
+            },
+            {
+              "code": "35640",
+              "description": "BUSHING PVC PRESION 63mm A 32mm IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.36,
+              "units_3": 576,
+              "custom_1": 51000
+            },
+            {
+              "code": "1252",
+              "description": "VALVULA ESFERICA PVC 75mm DOBLE UNIVERSAL IMP",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 4.05,
+              "units_3": 17328,
+              "custom_1": 56000
+            },
+            {
+              "code": "16508",
+              "description": "CODO PVC PRESION 32mmx90° EC IMP PN10",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 1.14,
+              "units_3": 4320,
+              "custom_1": 13000
+            },
+            {
+              "code": "35100ER",
+              "description": "COLLARIN PE 110mmx1 1/2\" IMP. PN10",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 16000
+            },
+            {
+              "code": "23439",
+              "description": "UNION PVC PRESION 160mm CC IMP PN10",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 2750,
+              "units_3": 1024,
+              "custom_1": 33000
+            },
+            {
+              "code": "23898",
+              "description": "UNION  UNIVERSAL PVC 25mm CC LISO PEGABLE IMP.",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 36000
+            },
+            {
+              "code": "17192ER",
+              "description": "COLLARIN PE 32mmx3/4\" IMP PN10",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 18000
+            },
+            {
+              "code": "24104",
+              "description": "VALVULA ESFERICA PVC 25mm UNA UNIVERSAL IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 37000
+            },
+            {
+              "code": "3600",
+              "description": "TAPON HEMBRA PVC PRESION 63mm IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.36,
+              "units_3": 883.12,
+              "custom_1": 23000
+            },
+            {
+              "code": "20477",
+              "description": "TEE PVC PRESION 25mm CC IMP PN10",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.33,
+              "units_3": 1237.5,
+              "custom_1": 25000
+            },
+            {
+              "code": "20549",
+              "description": "TEE PVC PRESION 63mm CC IMP PN10",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 5.74,
+              "units_3": 37950,
+              "custom_1": 26000
+            },
+            {
+              "code": "20911",
+              "description": "TEE REDUCTORA PVC PRESION 63mm A 25mm CC IMP",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.68,
+              "units_3": 2898,
+              "custom_1": 27000
+            },
+            {
+              "code": "24111",
+              "description": "VALVULA ESFERICA PVC 63mm UNA UNIVERSAL IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 4.6,
+              "units_3": 14858,
+              "custom_1": 38000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007438-M0'095340'4.48'1-B87",
+          "alt_code": "ST-26007438-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "924280",
+              "description": "BRIDA PVC CON CUELLO 110mm INY PN10 PLASTIGAMA",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 4.5,
+              "units_3": 19320,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007501-M0'111732'6.11'1-B87",
+          "alt_code": "ST-26007501-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-V1-FH63-S-GL",
+              "description": "CANDADO PLANO ALARGADO 63mm PLATA FANAL",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 1.02,
+              "units_3": 1170,
+              "custom_1": 7000
+            },
+            {
+              "code": "YA10892",
+              "description": "BISAGRA 3\"x3\"x2mm BRONCE ANTIG C/PAR YALE",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 7.4074,
+              "units_3": 0.0042,
+              "custom_1": 50000
+            },
+            {
+              "code": "FA-V2-FH20-B",
+              "description": "CANDADO PLANO 20mm X2 LATON BRONCE FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 61000
+            },
+            {
+              "code": "FA-FLM50",
+              "description": "CANDADO LAMINADO 50mm FANAL",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.66,
+              "units_3": 1280,
+              "custom_1": 63000
+            },
+            {
+              "code": "FA-N888-027",
+              "description": "BISAGRA LIBRO 3.5\"X3.5\" NE MAT C/3UND  FUNDA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 427.5,
+              "custom_1": 76000
+            },
+            {
+              "code": "6351",
+              "description": "PISTOLA PARA CARTUCHO DE SILICONA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.87,
+              "units_3": 4860,
+              "custom_1": 79000
+            },
+            {
+              "code": "FA-V1-FH63-B",
+              "description": "CANDADO PLANO 63mm LATON BRONCE FANAL",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.922,
+              "units_3": 247,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007501-M0'111934'6.92'1-B87",
+          "alt_code": "ST-26007501-B87-18000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "KW-98180-015",
+              "description": "CERRADURA PUERTA PRINCIPAL VANCOUVER SC LL/M IRON BLACK",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 18000
+            },
+            {
+              "code": "GEO-91160-435",
+              "description": "CERRADURA MANIJA DORMITORIO LIRA NEGRO GEO 514CP",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 64000
+            },
+            {
+              "code": "GEO-91980-001",
+              "description": "CERRADURA DIGITAL OLBIA GEO",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 1.91,
+              "units_3": 4620,
+              "custom_1": 68000
+            }
+          ]
+        },
+        {
+          "code": "ST-26007501-M0'140133'6.44'1-B87",
+          "alt_code": "ST-26007501-B87-10000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "502887",
+              "description": "GUANTE LATEX CLASICO C22 NE 9.5 BAÑO ETERNA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 10000
+            },
+            {
+              "code": "7504",
+              "description": "LIJA AGUA #1-400 FANDELLI",
+              "units": 15,
+              "units_1": 1,
+              "units_2": 0.18,
+              "units_3": 9660,
+              "custom_1": 71000
+            },
+            {
+              "code": "7507",
+              "description": "LIJA AGUA #80 FANDELLI",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.34,
+              "units_3": 6440,
+              "custom_1": 72000
+            },
+            {
+              "code": "7524",
+              "description": "LIJA HIERRO #3-36 UNION",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.65,
+              "units_3": 619.5,
+              "custom_1": 73000
+            },
+            {
+              "code": "7522",
+              "description": "LIJA HIERRO #2-60 FINA UNION",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.48,
+              "units_3": 619.5,
+              "custom_1": 74000
+            },
+            {
+              "code": "7379",
+              "description": "CLAVO ACERO BLANCO 1\" JP C/K",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 1.044,
+              "units_3": 609.408,
+              "custom_1": 1000
+            },
+            {
+              "code": "WI-12219FUT",
+              "description": "BROCHA 1\" M/PLASTICO  NATURAL FUTURA CERDA POLIESTER WILSON",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.16,
+              "units_3": 960,
+              "custom_1": 75000
+            },
+            {
+              "code": "7523",
+              "description": "LIJA HIERRO #2 1/2-50 GRUESA UNION",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.275,
+              "units_3": 3045,
+              "custom_1": 3000
+            },
+            {
+              "code": "6006",
+              "description": "ARCO DE SIERRA CH",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.792,
+              "units_3": 3564,
+              "custom_1": 78000
+            },
+            {
+              "code": "7524",
+              "description": "LIJA HIERRO #3-36 UNION",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.195,
+              "units_3": 185.85,
+              "custom_1": 4000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

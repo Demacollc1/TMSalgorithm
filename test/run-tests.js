@@ -6,6 +6,11 @@ const assert = require('assert');
 const { haversineKm, centroid, interpolate } = require('../src/geo');
 const { quote, TARIFF } = require('../src/pricing');
 const { newTrackingCode, newApiKey } = require('../src/store');
+const { classifyBulto, buildLoadingPlan, loadingSummary } = require('../src/loading');
+const { mapPlan } = require('../src/importer');
+const { claveAcceso, mod11 } = require('../src/billing');
+const fs = require('fs');
+const path = require('path');
 const {
   optimize,
   nearestNeighborOrder,
@@ -216,24 +221,24 @@ const LASCONDES = { lat: -33.4172, lng: -70.6015 };
 
 test('quote: estructura y mínimos', () => {
   const q = quote({ origin: STGO, destination: LASCONDES, weightKg: 100 });
-  assert.strictEqual(q.currency, 'CLP');
-  assert.ok(q.priceClp >= TARIFF.minClp);
+  assert.strictEqual(q.currency, 'USD');
+  assert.ok(q.priceUsd >= TARIFF.minUsd);
   assert.ok(q.distanceKm > 0);
-  assert.ok(q.breakdown.base === TARIFF.baseClp);
+  assert.ok(q.breakdown.base === TARIFF.baseUsd);
 });
 
 test('quote: express cuesta más que normal y programado menos', () => {
   const base = { origin: STGO, destination: LASCONDES, weightKg: 100, volumeM3: 1 };
-  const normal = quote({ ...base, service: 'normal' }).priceClp;
-  const express = quote({ ...base, service: 'express' }).priceClp;
-  const prog = quote({ ...base, service: 'programado' }).priceClp;
+  const normal = quote({ ...base, service: 'normal' }).priceUsd;
+  const express = quote({ ...base, service: 'express' }).priceUsd;
+  const prog = quote({ ...base, service: 'programado' }).priceUsd;
   assert.ok(express > normal, `express (${express}) debe superar normal (${normal})`);
   assert.ok(prog <= normal, `programado (${prog}) no debe superar normal (${normal})`);
 });
 
 test('quote: más peso nunca abarata', () => {
-  const light = quote({ origin: STGO, destination: LASCONDES, weightKg: 10 }).priceClp;
-  const heavy = quote({ origin: STGO, destination: LASCONDES, weightKg: 900 }).priceClp;
+  const light = quote({ origin: STGO, destination: LASCONDES, weightKg: 10 }).priceUsd;
+  const heavy = quote({ origin: STGO, destination: LASCONDES, weightKg: 900 }).priceUsd;
   assert.ok(heavy >= light);
 });
 
@@ -258,6 +263,112 @@ test('apiKey: prefijo mk_ y única', () => {
   const b = newApiKey();
   assert.ok(a.startsWith('mk_') && a.length > 20);
   assert.notStrictEqual(a, b);
+});
+
+console.log('\nMódulo de carga:');
+
+test('clasificación: tubos van a la parrilla', () => {
+  const c = classifyBulto({ weightKg: 14, description: 'TUBO PVC PRESION 32mmx6m' });
+  assert.strictEqual(c.cargoType, 'volumetrica');
+  assert.strictEqual(c.zone, 'parrilla');
+});
+
+test('clasificación: sacos de cemento/empaste van a delantera-central', () => {
+  for (const desc of ['BONDEX STANDARD CERAMICA 25 KG', 'SIKA EMPASTE INTERIOR BLANCO 20kg', 'CEMENTO ASFALTICO 20KG']) {
+    const c = classifyBulto({ weightKg: 25, description: desc });
+    assert.strictEqual(c.zone, 'delantera-central', desc);
+  }
+});
+
+test('clasificación: paquetería liviana al cajón', () => {
+  const c = classifyBulto({ weightKg: 6, description: 'CAJA GRIFERÍA Y REPUESTOS' });
+  assert.strictEqual(c.cargoType, 'paqueteria');
+  assert.strictEqual(c.zone, 'cajon');
+});
+
+function fakeRoute() {
+  const orders = [
+    { id: 'o1', code: 'P1', address: 'A1', customer: 'C1', bultos: [
+      { containerId: 'b1', barcode: 'b1', description: 'CAJA LIVIANA', weightKg: 5, volumeM3: 0.01 },
+      { containerId: 'b2', barcode: 'b2', description: 'SACO CEMENTO 25KG', weightKg: 25, volumeM3: 0.02 },
+    ] },
+    { id: 'o2', code: 'P2', address: 'A2', customer: 'C2', bultos: [
+      { containerId: 'b3', barcode: 'b3', description: 'TUBO PVC 6m', weightKg: 14, volumeM3: 0.2 },
+      { containerId: 'b4', barcode: 'b4', description: 'CAJA REPUESTOS', weightKg: 4, volumeM3: 0.01 },
+    ] },
+    { id: 'o3', code: 'P3', address: 'A3', customer: 'C3', bultos: [
+      { containerId: 'b5', barcode: 'b5', description: 'CAJA PAQUETES', weightKg: 6, volumeM3: 0.01 },
+    ] },
+  ];
+  const route = { stops: [
+    { seq: 1, orderId: 'o1' }, { seq: 2, orderId: 'o2' }, { seq: 3, orderId: 'o3' },
+  ] };
+  return { route, orders };
+}
+
+test('secuencia: volumétrica primero, paquetería en orden inverso de entrega (LIFO)', () => {
+  const { route, orders } = fakeRoute();
+  const plan = buildLoadingPlan(route, orders);
+  assert.strictEqual(plan.length, 5);
+  // fase 1: el saco pesado primero
+  assert.strictEqual(plan[0].barcode, 'b2');
+  assert.strictEqual(plan[0].zone, 'delantera-central');
+  // fase 2: el tubo a la parrilla
+  assert.strictEqual(plan[1].barcode, 'b3');
+  assert.strictEqual(plan[1].zone, 'parrilla');
+  // fase 3: paquetería LIFO → parada 3 antes que parada 2 antes que parada 1
+  const parcels = plan.filter((b) => b.phase === 3).map((b) => b.stopSeq);
+  assert.deepStrictEqual(parcels, [3, 2, 1]);
+});
+
+test('secuencia: pedido sin bultos genera bulto único con su tracking', () => {
+  const orders = [{ id: 'o9', code: 'P9', trackingCode: 'MAC-TEST01', address: 'X', customer: 'C', weightKg: 12, volumeM3: 0.1 }];
+  const plan = buildLoadingPlan({ stops: [{ seq: 1, orderId: 'o9' }] }, orders);
+  assert.strictEqual(plan.length, 1);
+  assert.strictEqual(plan[0].barcode, 'MAC-TEST01');
+});
+
+test('resumen: detecta carga completa', () => {
+  const { route, orders } = fakeRoute();
+  const plan = buildLoadingPlan(route, orders);
+  assert.strictEqual(loadingSummary(plan).complete, false);
+  plan.forEach((b) => (b.loaded = true));
+  assert.strictEqual(loadingSummary(plan).complete, true);
+});
+
+console.log('\nImportador de planes (formato Driv.in):');
+
+test('mapPlan: importa el plan de ejemplo del ERP', () => {
+  const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'samples', 'plan-demaco.json'), 'utf8'));
+  const { orders, warnings } = mapPlan(raw);
+  assert.strictEqual(warnings.length, 0);
+  assert.strictEqual(orders.length, 1);
+  const o = orders[0];
+  assert.strictEqual(o.bultos.length, 29);
+  assert.ok(o.lat < -2 && o.lat > -3, 'lat de Guayaquil');
+  assert.ok(o.weightKg > 0);
+  // el alt_code del ERP es el código de barras del bulto
+  assert.ok(o.bultos.every((b) => b.barcode && b.barcode.startsWith('ST-')));
+  // los tubos del plan van a parrilla
+  const tubos = o.bultos.filter((b) => /TUBO/i.test(b.description));
+  assert.ok(tubos.length >= 1 && tubos.every((b) => b.zone === 'parrilla'));
+  // los sacos pesados (BONDEX/EMPASTE) van a delantera-central
+  const bondex = o.bultos.find((b) => /BONDEX/i.test(b.description));
+  assert.strictEqual(bondex.zone, 'delantera-central');
+});
+
+test('mapPlan: rechaza formatos inválidos', () => {
+  assert.throws(() => mapPlan({}));
+  assert.throws(() => mapPlan(null));
+});
+
+console.log('\nFacturación electrónica:');
+
+test('claveAcceso: 49 dígitos numéricos con verificador módulo 11', () => {
+  const clave = claveAcceso({ date: new Date(), docType: '01', ruc: '0999999999001', serie: '005002', secuencial: 123 });
+  assert.strictEqual(clave.length, 49);
+  assert.ok(/^\d{49}$/.test(clave));
+  assert.strictEqual(Number(clave[48]), mod11(clave.slice(0, 48)));
 });
 
 console.log(`\n${passed} pruebas OK, ${failed} fallidas\n`);

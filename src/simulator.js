@@ -34,6 +34,18 @@ function orderById(id) {
   return db.orders.find((o) => o.id === id);
 }
 
+// estados finales de un pedido (confirmados por el conductor)
+const FINAL_STATUSES = ['entregado', 'recolectado', 'no_entregado', 'entrega_parcial', 'devuelto', 'rechazado'];
+
+// ¿la parada exige confirmación manual del conductor (bultos escaneables)?
+function isManualStop(route, stop) {
+  return !!(
+    stop.orderId &&
+    route.loadingPlan &&
+    route.loadingPlan.some((b) => b.orderId === stop.orderId)
+  );
+}
+
 function completeStop(route, stop) {
   stop.status = 'completada';
   stop.arrivedAt = new Date().toISOString();
@@ -92,6 +104,23 @@ function tick() {
       continue;
     }
 
+    // detenido en el cliente esperando la confirmación del conductor
+    if (sim.holdStopSeq != null) {
+      const stop = route.stops.find((s) => s.seq === sim.holdStopSeq);
+      const order = stop && stop.orderId ? orderById(stop.orderId) : null;
+      if (order && FINAL_STATUSES.includes(order.status)) {
+        stop.status = 'completada';
+        stop.arrivedAt = stop.arrivedAt || new Date().toISOString();
+        sim.holdStopSeq = null;
+        sim.dwell = DWELL_TICKS;
+        // si era la última parada y no hay regreso, cierra la ruta
+        if (sim.legIndex >= route.polyline.length - 1 && !route.stops.some((s) => s.status !== 'completada')) {
+          completeRoute(route);
+        }
+      }
+      continue;
+    }
+
     const poly = route.polyline;
     if (sim.legIndex >= poly.length - 1) {
       completeRoute(route);
@@ -111,10 +140,19 @@ function tick() {
       sim.position = to;
       const stop = route.stops[sim.legIndex - 1];
       if (stop && stop.status !== 'completada') {
-        completeStop(route, stop);
-        sim.dwell = DWELL_TICKS;
+        const order = stop.orderId ? orderById(stop.orderId) : null;
+        if (isManualStop(route, stop) && order && !FINAL_STATUSES.includes(order.status)) {
+          // llegó al cliente: espera la confirmación del conductor
+          stop.status = 'en_sitio';
+          stop.arrivedAt = new Date().toISOString();
+          sim.holdStopSeq = stop.seq;
+          logEvent('route.en_sitio', { routeId: route.id, orderId: stop.orderId, seq: stop.seq });
+        } else {
+          completeStop(route, stop);
+          sim.dwell = DWELL_TICKS;
+        }
       }
-      if (sim.legIndex >= poly.length - 1) {
+      if (sim.legIndex >= poly.length - 1 && sim.holdStopSeq == null) {
         // si no hay regreso a origen, la última parada cierra la ruta
         const pendientes = route.stops.some((s) => s.status !== 'completada');
         if (!pendientes) completeRoute(route);
