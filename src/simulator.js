@@ -3,6 +3,7 @@
 const { haversineKm, interpolate, bearing } = require('./geo');
 const { db, save, logEvent } = require('./store');
 const { dispatchWebhooks } = require('./webhooks');
+const ai = require('./ai');
 
 /**
  * Simulador GPS: mueve los vehículos de las rutas "en_curso" a lo largo
@@ -131,6 +132,20 @@ function completeRoute(route) {
   stopRoute(route.id);
   logEvent('route.completada', { routeId: route.id, vehicleId: route.vehicleId });
   dispatchWebhooks('route.completed', { routeId: route.id, vehicleId: route.vehicleId });
+  // informe final de ruta para análisis (IA)
+  try {
+    ai.buildRouteReport(route);
+  } catch (err) {
+    logEvent('ai.error', { routeId: route.id, error: err.message });
+  }
+}
+
+// posición reportada (permite simular un desvío para probar la IA)
+function reportedPosition(route, sim) {
+  if (route.simulateDeviation) {
+    return { lat: sim.position.lat + 0.009, lng: sim.position.lng + 0.009 };
+  }
+  return sim.position;
 }
 
 function tick() {
@@ -139,6 +154,18 @@ function tick() {
     if (route.status !== 'en_curso') continue;
     const sim = state.get(route.id) || (startRoute(route), state.get(route.id));
     changed = true;
+
+    // telemetría y supervisión IA en cada tick
+    const pos = reportedPosition(route, sim);
+    if (!route.simulateSignalLoss) {
+      ai.recordTelemetry(route.vehicleId, 'celular', { lat: pos.lat, lng: pos.lng, heading: sim.heading, routeId: route.id });
+    }
+    try {
+      ai.checkDeviation(route, pos);
+      ai.checkSignalLoss(route);
+    } catch (err) {
+      logEvent('ai.error', { routeId: route.id, error: err.message });
+    }
 
     if (sim.dwell > 0) {
       sim.dwell -= 1;
@@ -149,13 +176,23 @@ function tick() {
     if (sim.holdStopSeq != null) {
       const stop = route.stops.find((s) => s.seq === sim.holdStopSeq);
       const order = stop && stop.orderId ? orderById(stop.orderId) : null;
+      // espera prolongada: avisa retraso al resto de clientes y marca
+      // el pedido para pedir feedback al cerrar
+      sim.holdTicks = (sim.holdTicks || 0) + 1;
+      const delayTicks = (db.company.ai && db.company.ai.delayHoldTicks) || 45;
+      if (sim.holdTicks === delayTicks) {
+        ai.notifyDelay(route, 'una espera prolongada donde un cliente');
+        if (order) order._delayFlag = true;
+      }
       if (order && FINAL_STATUSES.includes(order.status)) {
         stop.status = 'completada';
         stop.arrivedAt = stop.arrivedAt || new Date().toISOString();
         sim.holdStopSeq = null;
+        sim.holdTicks = 0;
         sim.dwell = DWELL_TICKS;
+        ai.notifyNextDelivery(route);
         // si era la última parada y no hay regreso, cierra la ruta
-        if (sim.legIndex >= route.polyline.length - 1 && !route.stops.some((s) => s.status !== 'completada')) {
+        if (sim.legIndex >= route.polyline.length - 1 && !route.stops.some((s) => !['completada', 'delegada'].includes(s.status))) {
           completeRoute(route);
         }
       }
@@ -180,7 +217,7 @@ function tick() {
       sim.legProgressKm = 0;
       sim.position = to;
       const stop = route.stops[sim.legIndex - 1];
-      if (stop && stop.status !== 'completada') {
+      if (stop && !['completada', 'delegada'].includes(stop.status)) {
         const order = stop.orderId ? orderById(stop.orderId) : null;
         if (isManualStop(route, stop) && order && !FINAL_STATUSES.includes(order.status)) {
           // llegó al cliente: espera la confirmación del conductor
@@ -191,11 +228,12 @@ function tick() {
         } else {
           completeStop(route, stop);
           sim.dwell = DWELL_TICKS;
+          ai.notifyNextDelivery(route);
         }
       }
       if (sim.legIndex >= poly.length - 1 && sim.holdStopSeq == null) {
         // si no hay regreso a origen, la última parada cierra la ruta
-        const pendientes = route.stops.some((s) => s.status !== 'completada');
+        const pendientes = route.stops.some((s) => !['completada', 'delegada'].includes(s.status));
         if (!pendientes) completeRoute(route);
       }
     } else {
@@ -211,6 +249,7 @@ function positions() {
     if (route.status !== 'en_curso') continue;
     const sim = state.get(route.id);
     if (!sim) continue;
+    const shown = reportedPosition(route, sim);
     const vehicle = db.vehicles.find((v) => v.id === route.vehicleId);
     const driver = vehicle && db.drivers.find((d) => d.id === vehicle.driverId);
     const nextStop = route.stops.find((s) => s.status !== 'completada');
@@ -221,8 +260,8 @@ function positions() {
       vehicleName: vehicle ? vehicle.name : null,
       driverName: driver ? driver.name : null,
       isNodriza: !!route.isNodriza,
-      lat: sim.position.lat,
-      lng: sim.position.lng,
+      lat: shown.lat,
+      lng: shown.lng,
       heading: Math.round(sim.heading),
       nextStop: nextStop
         ? { seq: nextStop.seq, orderId: nextStop.orderId || nextStop.transferPointId, eta: nextStop.eta }

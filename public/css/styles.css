@@ -151,6 +151,7 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .load-table td, .load-table th { padding: 7px 10px; }
 .load-table .row-loaded { background: #f2fbf7; }
 .load-table .row-loaded td { color: #6a7a72; }
+.load-table .row-skipped { background: #fdf3f3; }
 .scan-box { display: flex; align-items: center; gap: 8px; background: #101a2b; border-radius: 10px; padding: 8px 12px; }
 .scan-box .scan-icon { font-size: 20px; }
 .scan-box .input { background: #1c2942; border-color: #2c3d5f; color: #fff; font-family: ui-monospace, monospace; }

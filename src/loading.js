@@ -131,6 +131,8 @@ function buildLoadingPlan(route, orders) {
     loaded: false,
     loadedAt: null,
     loadMethod: null, // 'scan' | 'manual'
+    skipped: false, // no cargado (con motivo en skipReason)
+    skipReason: null,
     delivered: false,
     deliveredAt: null,
     deliveryStatus: null, // 'entregado' | 'devuelto' | 'rechazado'
@@ -141,11 +143,14 @@ function buildLoadingPlan(route, orders) {
 function loadingSummary(plan) {
   const total = plan.length;
   const loaded = plan.filter((b) => b.loaded).length;
+  const skipped = plan.filter((b) => b.skipped).length;
   return {
     total,
     loaded,
-    pending: total - loaded,
-    complete: total > 0 && loaded === total,
+    skipped,
+    pending: total - loaded - skipped,
+    // la carga cierra cuando cada bulto fue cargado o marcado no cargado
+    complete: total > 0 && loaded + skipped === total,
     weightKg: Math.round(plan.reduce((s, b) => s + b.weightKg, 0) * 10) / 10,
     volumeM3: Math.round(plan.reduce((s, b) => s + b.volumeM3, 0) * 100) / 100,
     byPhase: [0, 1, 2, 3].map((phase) => ({

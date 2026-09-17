@@ -80,6 +80,8 @@
     let db = { routes: [], orders: [], vehicles: [], drivers: [] };
     let scanBuffer = {}; // orderId -> Set(barcodes escaneados)
     let pollTimer = null;
+    let lastPos = null; // última posición GPS conocida (para gastos y entregas)
+    let delegations = [];
 
     async function api(path, opts = {}) {
       const res = await fetch(API + path, {
@@ -101,8 +103,8 @@
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
     async function refresh() {
-      [db.routes, db.orders, db.vehicles, db.drivers] = await Promise.all([
-        api('/routes'), api('/orders'), api('/vehicles'), api('/drivers'),
+      [db.routes, db.orders, db.vehicles, db.drivers, delegations] = await Promise.all([
+        api('/routes'), api('/orders'), api('/vehicles'), api('/drivers'), api('/delegations'),
       ]);
     }
 
@@ -156,7 +158,26 @@
       const done = stops.filter((s) => s.status === 'completada').length;
       const currentStop = stops.find((s) => s.status === 'en_sitio') || stops.find((s) => s.status !== 'completada');
 
+      // consulta pendiente de la IA (desvío de ruta)
+      const consulta = (route.aiConsultas || []).find((c) => c.status === 'pendiente');
+      const myDelegations = delegations.filter((d) => d.toRouteId === route.id && d.status === 'solicitada');
+
       $('route-run').innerHTML = `
+        ${consulta ? `
+        <div class="card" style="border:2px solid var(--warn)">
+          <div class="stop-head"><h3>🤖 Consulta del asistente</h3><span class="badge b-amber">RESPONDER</span></div>
+          <p style="margin:6px 0">${esc(consulta.question)}</p>
+          ${consulta.options.map((o) => `<button class="btn btn-gray" onclick="answerAI('${consulta.id}', '${esc(o)}')">${esc(o)}</button>`).join('')}
+        </div>` : ''}
+        ${myDelegations.map((d) => `
+        <div class="card" style="border:2px solid var(--accent)">
+          <div class="stop-head"><h3>📦 Delegación entrante</h3><span class="badge b-red">RESPONDER</span></div>
+          <p class="muted">${esc(d.orderCode)} · ${esc(d.customer)}<br>Motivo: ${esc(d.motivo || '—')}</p>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn btn-red" onclick="respondDelegation('${d.id}','accept')">Aceptar paquete</button>
+            <button class="btn btn-gray" onclick="respondDelegation('${d.id}','reject')">Rechazar</button>
+          </div>
+        </div>`).join('')}
         <div class="card">
           <div class="stop-head">
             <h3>Ruta ${esc(route.id)}</h3>
@@ -164,7 +185,27 @@
           </div>
           <div class="progress"><div style="width:${(done / Math.max(1, stops.length)) * 100}%"></div></div>
           <p class="muted">${done}/${stops.length} paradas completadas · <span id="gps-info">—</span></p>
-          <button class="btn btn-gray" onclick="backToList()">← Mis rutas</button>
+          <div class="btn-row">
+            <button class="btn btn-gray" onclick="backToList()">← Mis rutas</button>
+            <button class="btn btn-gray" onclick="toggleExpense()">💵 Registrar gasto</button>
+          </div>
+          <div id="expense-form" class="hidden" style="margin-top:10px">
+            <select class="input" id="exp-tipo">
+              <option value="combustible">Combustible</option>
+              <option value="peaje">Peaje</option>
+              <option value="parqueo">Parqueo</option>
+              <option value="alimentacion">Alimentación</option>
+              <option value="viatico">Viático</option>
+              <option value="reparacion">Reparación</option>
+              <option value="otro">Otro</option>
+            </select>
+            <input class="input" id="exp-monto" type="number" step="0.01" min="0" placeholder="Monto USD" />
+            <input class="input" id="exp-nota" placeholder="Nota (opcional)" />
+            <label class="muted" style="display:block;margin-top:6px">
+              <input type="checkbox" id="exp-link-stop" checked /> Vincular a la parada actual
+            </label>
+            <button class="btn btn-red" onclick="saveExpense()">Guardar gasto</button>
+          </div>
         </div>
         ${route.stops
           .map((s) =>
@@ -222,6 +263,7 @@
             <button class="btn btn-gray" onclick="deliver('${order.id}', 'devolucion')">Devolución</button>
             <button class="btn btn-gray" onclick="deliver('${order.id}', 'rechazado')">Rechazo</button>
             <button class="btn btn-gray" onclick="markAll('${order.id}')">Marcar todos</button>
+            <button class="btn btn-gray" onclick="delegateStop('${order.id}')">↪ Delegar a otra ruta</button>
           </div>` : ''}
         ${final && order.pod ? `<p class="muted">POD: ${esc(order.pod.receiver)} · ${order.pod.bultosEntregados}/${order.pod.bultosTotales} bultos · ${esc(order.pod.notes || '')}</p>` : ''}
       </div>`;
@@ -289,7 +331,12 @@
       try {
         await api(`/routes/${current}/deliver`, {
           method: 'POST',
-          body: { orderId, resultado, bultoBarcodes: scanned, motivo, receptor },
+          body: {
+            orderId, resultado, bultoBarcodes: scanned, motivo, receptor,
+            // posición real de la confirmación (la IA valida la geolocalización)
+            lat: lastPos ? lastPos.lat : undefined,
+            lng: lastPos ? lastPos.lng : undefined,
+          },
         });
         delete scanBuffer[orderId];
         toast(resultado === 'entregado' ? '✅ Entrega registrada' : 'Novedad registrada: ' + resultado.replace('_', ' '));
@@ -298,6 +345,67 @@
       } catch (err) {
         toast(err.message, true);
       }
+    };
+
+    // ------------------------------------------------ IA / delegación / gastos
+    window.answerAI = async (consultaId, answer) => {
+      let detail = '';
+      if (answer === 'Otro') detail = prompt('Cuéntanos el motivo:') || '';
+      try {
+        await api(`/routes/${current}/answer-consulta`, { method: 'POST', body: { consultaId, answer, detail } });
+        toast('Respuesta registrada. ¡Gracias!');
+        await refresh();
+        renderRun();
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.respondDelegation = async (id, action) => {
+      const motivo = action === 'reject' ? (prompt('Motivo del rechazo:') || '') : '';
+      try {
+        await api(`/delegations/${id}/${action}`, { method: 'POST', body: { motivo } });
+        toast(action === 'accept' ? 'Paquete aceptado: aparecerá en tu ruta y lista de carga' : 'Delegación rechazada');
+        await refresh();
+        renderRun();
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.delegateStop = async (orderId) => {
+      const targets = db.routes.filter((r) => r.status === 'planificada' && r.id !== current);
+      if (!targets.length) return toast('No hay otras rutas planificadas para delegar', true);
+      const list = targets.map((r, i) => `${i + 1}. ${r.id} (${(db.vehicles.find((v) => v.id === r.vehicleId) || {}).plate || ''})`).join('\n');
+      const pick = prompt('¿A qué ruta delegas este paquete?\n' + list + '\n\nEscribe el número:');
+      const target = targets[Number(pick) - 1];
+      if (!target) return;
+      const motivo = prompt('Motivo de la delegación (no alcanzo, avería, etc.):') || '';
+      try {
+        await api(`/routes/${current}/delegate`, { method: 'POST', body: { orderId, toRouteId: target.id, motivo } });
+        toast('Solicitud enviada: el otro transportista debe aceptar el paquete');
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.toggleExpense = () => $('expense-form').classList.toggle('hidden');
+
+    window.saveExpense = async () => {
+      const monto = Number($('exp-monto').value);
+      if (!(monto > 0)) return toast('Ingresa el monto del gasto', true);
+      const route = db.routes.find((r) => r.id === current);
+      const currentStop = route.stops.find((s) => s.orderId && !['completada', 'delegada'].includes(s.status));
+      try {
+        await api(`/routes/${current}/expenses`, {
+          method: 'POST',
+          body: {
+            tipo: $('exp-tipo').value,
+            montoUsd: monto,
+            notas: $('exp-nota').value.trim(),
+            orderId: $('exp-link-stop').checked && currentStop ? currentStop.orderId : null,
+            lat: lastPos ? lastPos.lat : null,
+            lng: lastPos ? lastPos.lng : null,
+          },
+        });
+        $('exp-monto').value = ''; $('exp-nota').value = '';
+        $('expense-form').classList.add('hidden');
+        toast('Gasto registrado y vinculado a la ruta');
+      } catch (err) { toast(err.message, true); }
     };
 
     function focusScan() {
@@ -313,6 +421,7 @@
         try {
           const positions = await api('/tracking');
           const p = positions.find((x) => x.routeId === current);
+          if (p) lastPos = { lat: p.lat, lng: p.lng };
           const el = $('gps-info');
           if (el) el.textContent = p
             ? `pos ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)} · próx. parada ${p.nextStop ? '#' + p.nextStop.seq + ' ETA ' + p.nextStop.eta : '—'}`

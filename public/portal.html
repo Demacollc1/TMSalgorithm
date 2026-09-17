@@ -285,6 +285,13 @@
           <div class="track-status"><span class="badge-big" id="track-badge"></span></div>
           <ul class="timeline" id="track-timeline"></ul>
           <p class="muted" id="track-extra" style="text-align:center"></p>
+          <div id="feedback-box" class="hidden" style="text-align:center;margin-top:14px">
+            <p style="font-weight:700">¿Cómo estuvo tu experiencia?</p>
+            <div id="stars" style="font-size:34px;cursor:pointer;letter-spacing:6px;margin:6px 0">☆☆☆☆☆</div>
+            <input class="input" id="fb-comment" placeholder="Comentario (opcional)" />
+            <button class="btn btn-accent" id="btn-feedback" style="margin-top:10px">Enviar calificación</button>
+          </div>
+          <p id="feedback-done" class="muted hidden" style="text-align:center;margin-top:10px">¡Gracias por tu calificación! 💛</p>
         </div>
       </div>
     </div>
@@ -440,6 +447,30 @@
     };
     const STEPS = ['pendiente', 'asignado', 'en_ruta', 'entregado'];
 
+    // ------- calificación -------
+    let currentTrackCode = null;
+    let rating = 0;
+    $('stars').addEventListener('click', (e) => {
+      const rect = $('stars').getBoundingClientRect();
+      rating = Math.min(5, Math.max(1, Math.ceil(((e.clientX - rect.left) / rect.width) * 5)));
+      $('stars').textContent = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    });
+    $('btn-feedback').addEventListener('click', async () => {
+      if (!rating) return showError('track-error', 'Toca las estrellas para calificar');
+      try {
+        const res = await fetch('/api/public/v1/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trackingCode: currentTrackCode, rating, comment: $('fb-comment').value.trim() }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'No se pudo enviar');
+        $('feedback-box').classList.add('hidden');
+        $('feedback-done').classList.remove('hidden');
+      } catch (err) {
+        showError('track-error', err.message);
+      }
+    });
+
     $('btn-track').addEventListener('click', async () => {
       showError('track-error', '');
       $('track-result').classList.add('hidden');
@@ -469,9 +500,16 @@
             <div class="dot"></div>
             <div><div class="t-label">${LABELS[s][0]}</div><div class="t-sub">${LABELS[s][1]}</div></div>
           </li>`).join('');
-        $('track-extra').textContent = t.vehiclePosition
-          ? 'Posición del vehículo actualizada: ' + new Date(t.vehiclePosition.at).toLocaleTimeString('es-EC')
-          : (t.status === 'no_entregado' ? 'Hubo un problema con la entrega. Te contactaremos.' : '');
+        $('track-extra').textContent = t.nextUp
+          ? '🚚 ¡Tu entrega es la SIGUIENTE! Llegada estimada: ' + (t.eta || 'pronto')
+          : t.vehiclePosition
+            ? 'Posición del vehículo actualizada: ' + new Date(t.vehiclePosition.at).toLocaleTimeString('es-EC')
+            : (t.status === 'no_entregado' ? 'Hubo un problema con la entrega. Te contactaremos.' : '');
+        // calificación del servicio al cerrar la entrega
+        const finished = ['entregado', 'recolectado', 'entrega_parcial', 'devuelto', 'rechazado', 'no_entregado'].includes(t.status);
+        $('feedback-box').classList.toggle('hidden', !finished || t.hasFeedback);
+        $('feedback-done').classList.toggle('hidden', !t.hasFeedback);
+        currentTrackCode = code;
         $('track-result').classList.remove('hidden');
       } catch (err) {
         showError('track-error', err.message);

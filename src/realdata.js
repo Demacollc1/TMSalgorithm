@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 /**
  * Cargador de datos reales desde el export de configuración de driv.in
  * (config/demaco-drivin.json). Mapea las entidades de la organización
@@ -45,6 +47,8 @@ function mapVehicles(raw, drivers) {
       hasParrilla: true, // puede llevar tubos en la parte superior (editable)
       hasTowHitch: !tags.includes('FURGON'), // bola para remolque (editable)
       hasLiftgate: false, // ascensor / montacargas en la cola (editable)
+      // token para que los GPS físicos (vehículo / dashcam) transmitan telemetría
+      deviceToken: 'vt_' + crypto.randomBytes(12).toString('hex'),
       apto: v.is_active !== false,
       aptoNotes: v.is_active === false ? 'Inactivo en driv.in' : '',
       driverId: driver ? driver.id : null,

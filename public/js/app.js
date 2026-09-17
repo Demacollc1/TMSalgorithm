@@ -121,6 +121,7 @@ async function render() {
   if (view === 'planificacion') renderPlanning();
   if (view === 'carga') renderLoading();
   if (view === 'monitoreo') renderMonitoring();
+  if (view === 'casos') renderCasos();
   if (view === 'empresas') renderCompanies();
   if (view === 'webhooks') renderWebhooks();
 }
@@ -930,14 +931,17 @@ async function renderLoadDetail(routeId) {
       const rows = items
         .map(
           (b) => `
-        <tr class="${b.loaded ? 'row-loaded' : ''}">
+        <tr class="${b.loaded ? 'row-loaded' : b.skipped ? 'row-skipped' : ''}">
           <td>${b.seq}</td>
           <td><code>${esc(b.barcode)}</code></td>
           <td class="wrap">${esc(b.description)}<br><span class="muted">Parada ${b.stopSeq} · ${esc(b.customer)}</span></td>
           <td>${b.weightKg} kg</td>
           <td>${b.loaded
             ? `<span class="badge entregado">✔ ${b.loadMethod === 'scan' ? 'escaneado' : 'manual'}</span>`
-            : `<button class="btn btn-secondary btn-sm" onclick="confirmBulto('${routeId}', ${b.seq})">Confirmar</button>`}</td>
+            : b.skipped
+              ? `<span class="badge no_entregado" title="${esc(b.skipReason)}">✖ no cargado</span><br><span class="muted">${esc(b.skipReason)}</span> <button class="btn-link" onclick="confirmBulto('${routeId}', ${b.seq})">cargar</button>`
+              : `<button class="btn btn-secondary btn-sm" onclick="confirmBulto('${routeId}', ${b.seq})">Confirmar</button>
+                 <button class="btn-link danger" onclick="skipBulto('${routeId}', ${b.seq})">No cargado</button>`}</td>
         </tr>`
         )
         .join('');
@@ -952,7 +956,7 @@ async function renderLoadDetail(routeId) {
     <div class="load-head">
       <div>
         <h3 style="margin-bottom:2px">${esc(routeId)} · ${esc(vehicle ? vehicle.plate + ' — ' + vehicle.name : '')}</h3>
-        <span class="muted">${summary.loaded}/${summary.total} bultos · ${summary.weightKg} kg · ${summary.volumeM3} m³</span>
+        <span class="muted">${summary.loaded}/${summary.total} bultos${summary.skipped ? ` · ${summary.skipped} no cargados` : ''} · ${summary.weightKg} kg · ${summary.volumeM3} m³</span>
       </div>
       ${badge(loadStatus, loadStatus === 'cargada' ? 'entregado' : 'asignado')}
     </div>
@@ -1005,6 +1009,12 @@ async function sendLoad(routeId, body) {
 }
 
 window.confirmBulto = (routeId, seq) => sendLoad(routeId, { seq });
+
+window.skipBulto = (routeId, seq) => {
+  const motivo = prompt('Motivo del NO CARGADO (faltante en bodega, dañado, no cabe, etc.):');
+  if (!motivo) return;
+  sendLoad(routeId, { seq, skip: true, motivo });
+};
 
 window.viewDocuments = async (routeId) => {
   try {
@@ -1086,6 +1096,119 @@ function stopPolling() {
   if (state.pollTimer) clearInterval(state.pollTimer);
   state.pollTimer = null;
 }
+
+// ============================================================ CASOS & IA
+async function renderCasos() {
+  const [cases, notifs, delegations] = await Promise.all([
+    api('/cases'),
+    api('/notifications'),
+    api('/delegations'),
+  ]);
+  const SEV = { alta: 'no_entregado', media: 'en_ruta', baja: 'pendiente' };
+  document.querySelector('#cases-table tbody').innerHTML = cases.length
+    ? cases
+        .slice(0, 30)
+        .map(
+          (c) => `
+      <tr>
+        <td class="wrap"><strong>${esc(c.title)}</strong><br><span class="muted">${esc(c.type)} · ${new Date(c.createdAt).toLocaleString('es-EC')}${c.resolution ? ' · ' + esc(c.resolution) : ''}</span></td>
+        <td>${badge(c.severity, SEV[c.severity])}</td>
+        <td>${badge(c.status, c.status === 'abierto' ? 'en_carga' : c.status === 'resuelto' ? 'entregado' : 'pendiente')}</td>
+        <td>${c.status === 'abierto'
+          ? `${c.type === 'geo_discrepancia' ? `<button class="btn-link" onclick="resolveCase('${c.id}','corregir_geo')">Corregir geo</button>` : ''}
+             <button class="btn-link" onclick="resolveCase('${c.id}','resolver')">Resolver</button>
+             <button class="btn-link danger" onclick="resolveCase('${c.id}','descartar')">Descartar</button>`
+          : '—'}</td>
+      </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="4" class="muted">Sin casos. La IA los creará al detectar desvíos, discrepancias o emergencias.</td></tr>';
+
+  document.querySelector('#notifs-table tbody').innerHTML = notifs.length
+    ? notifs
+        .slice(0, 30)
+        .map(
+          (n) => `
+      <tr>
+        <td>${new Date(n.at).toLocaleTimeString('es-EC')}</td>
+        <td>${badge(n.type.replace(/_/g, ' '), n.type === 'retraso' ? 'en_ruta' : n.type === 'feedback_solicitado' ? 'planificada' : 'entrega')}</td>
+        <td>${esc(n.customer)}</td>
+        <td class="wrap"><span class="muted">${esc(n.message)}</span></td>
+      </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="4" class="muted">Aún sin notificaciones a clientes.</td></tr>';
+
+  document.querySelector('#delegations-table tbody').innerHTML = delegations.length
+    ? delegations
+        .map(
+          (d) => `
+      <tr>
+        <td><strong>${esc(d.orderCode)}</strong><br><span class="muted">${esc(d.customer)}</span></td>
+        <td>${esc(d.fromRouteId)} → ${esc(d.toRouteId)}</td>
+        <td class="wrap">${esc(d.motivo || '—')}</td>
+        <td>${badge(d.status, d.status === 'aceptada' ? 'entregado' : d.status === 'rechazada' ? 'no_entregado' : 'en_carga')}</td>
+        <td>${d.status === 'solicitada'
+          ? `<button class="btn-link" onclick="respondDelegation('${d.id}','accept')">Aceptar</button>
+             <button class="btn-link danger" onclick="respondDelegation('${d.id}','reject')">Rechazar</button>`
+          : '—'}</td>
+      </tr>`
+        )
+        .join('')
+    : '<tr><td colspan="5" class="muted">Sin delegaciones solicitadas.</td></tr>';
+
+  const done = state.routes.filter((r) => r.status === 'completada');
+  const rows = await Promise.all(
+    done.slice(0, 15).map(async (r) => {
+      const exp = await api(`/routes/${r.id}/expenses`).catch(() => ({ total: 0 }));
+      const rep = r.aiReport;
+      return `
+      <tr>
+        <td><strong>${esc(r.id)}</strong></td>
+        <td>${rep ? `${rep.resultados.entregados}✔ ${rep.resultados.parciales}◐ ${rep.resultados.fallidos}✖` : '—'}</td>
+        <td>${rep ? rep.consultasIA.length : 0}</td>
+        <td>$${(exp.total || 0).toFixed(2)}</td>
+        <td><button class="btn-link" onclick="viewReport('${r.id}')">Ver informe</button></td>
+      </tr>`;
+    })
+  );
+  document.querySelector('#reports-table tbody').innerHTML =
+    rows.join('') || '<tr><td colspan="5" class="muted">Aún no hay rutas completadas.</td></tr>';
+}
+
+window.resolveCase = async (id, action) => {
+  const notes = action === 'corregir_geo' ? '' : prompt('Notas de la resolución (opcional):') || '';
+  try {
+    await api('/cases/' + id, { method: 'PUT', body: { action, notes } });
+    toast(action === 'corregir_geo' ? 'Geolocalización corregida en el pedido y el maestro' : 'Caso actualizado');
+    renderCasos();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
+
+window.respondDelegation = async (id, action) => {
+  const motivo = action === 'reject' ? prompt('Motivo del rechazo:') || '' : '';
+  try {
+    await api(`/delegations/${id}/${action}`, { method: 'POST', body: { motivo } });
+    toast(action === 'accept' ? 'Delegación aceptada: el paquete pasó a la otra ruta (re-escanear en carga)' : 'Delegación rechazada');
+    render();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
+
+window.viewReport = async (routeId) => {
+  try {
+    const rep = await api(`/routes/${routeId}/report`);
+    openModal(`Informe de ruta · ${routeId}`, `
+      <p class="muted">Este informe se envía al webservice de IA para analizar si las respuestas del chofer son coherentes y alimentar el algoritmo de cálculo.</p>
+      <pre style="background:#101a2b;color:#d5e0f2;padding:12px;border-radius:8px;max-height:55vh;overflow:auto;font-size:11.5px">${esc(JSON.stringify(rep, null, 2))}</pre>
+      <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cerrar</button></div>`);
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
 
 // ============================================================ EMPRESAS
 const COMPANY_TYPE_LABEL = { erp: 'ERP / Facturación', ecommerce: 'E-commerce', portal: 'Portal público' };

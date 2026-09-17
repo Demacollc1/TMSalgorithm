@@ -35,6 +35,13 @@ const db = {
       ivaPct: 15,
       webserviceUrl: '', // webservice de facturación electrónica (POST)
     },
+    ai: {
+      enabled: true,
+      webserviceUrl: '', // endpoint LLM/agente: recibe casos, consultas e informes
+      deviationKm: 0.5, // desvío de ruta que dispara la consulta al chofer
+      geoDiscrepancyKm: 0.3, // distancia entre entrega real y dirección registrada
+      delayHoldTicks: 45, // espera en cliente que dispara aviso de retraso (~90 s sim)
+    },
   },
   billingSeq: 140100, // secuencial de comprobantes (guías y facturas)
   companies: [], // empresas cliente (tenants): ERPs, e-commerce, portal público
@@ -52,6 +59,11 @@ const db = {
   webhooks: [],
   integrationLogs: [], // auditoría de llamadas al API de integración
   events: [], // registro de eventos (feed de actividad y webhooks)
+  cases: [], // casos operativos creados por la IA (desvíos, geolocalización, emergencias)
+  notifications: [], // notificaciones enviadas a clientes (siguiente entrega, retraso, feedback)
+  expenses: [], // gastos de ruta registrados por los choferes
+  delegations: [], // solicitudes de delegación de paquetes entre rutas
+  telemetry: {}, // última posición por vehículo y por fuente (celular / gps_vehiculo / dashcam)
 };
 
 function newApiKey() {
@@ -191,6 +203,11 @@ function reset() {
   db.routes = [];
   db.events = [];
   db.integrationLogs = [];
+  db.cases = [];
+  db.notifications = [];
+  db.expenses = [];
+  db.delegations = [];
+  db.telemetry = {};
   seq = 1000;
   seedData();
   db.vehicles.forEach((v) => {

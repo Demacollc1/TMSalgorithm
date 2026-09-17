@@ -25,8 +25,10 @@
       <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
       <a href="#/carga" data-view="carga" class="nav-item"><span>📦</span> Carga</a>
       <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
+      <a href="#/casos" data-view="casos" class="nav-item"><span>🤖</span> Casos &amp; IA</a>
       <a href="#/empresas" data-view="empresas" class="nav-item"><span>🏢</span> Empresas</a>
       <a href="/conductor" target="_blank" class="nav-item"><span>📱</span> App conductor</a>
+      <a href="/cabina" target="_blank" class="nav-item"><span>🛰️</span> Pantalla cabina</a>
       <a href="#/webhooks" data-view="webhooks" class="nav-item"><span>🔗</span> Integraciones</a>
       <a href="/portal" target="_blank" class="nav-item"><span>🌐</span> Portal público</a>
       <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
@@ -243,6 +245,46 @@
         </div>
         <div class="plan-map card">
           <div id="map-live" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== CASOS & IA ========================= -->
+    <section id="view-casos" class="view hidden">
+      <header class="view-header">
+        <h1>Casos &amp; IA</h1>
+        <p class="muted">Casos operativos generados por la IA (desvíos, geolocalización, señal, emergencias), notificaciones a clientes, delegaciones e informes de ruta. Configura el webservice de IA para que un agente LLM los analice.</p>
+      </header>
+      <div class="two-col">
+        <div class="card table-card">
+          <h3>Casos abiertos</h3>
+          <table class="table" id="cases-table">
+            <thead><tr><th>Caso</th><th>Severidad</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card table-card">
+          <h3>Notificaciones a clientes</h3>
+          <table class="table" id="notifs-table">
+            <thead><tr><th>Hora</th><th>Tipo</th><th>Cliente</th><th>Mensaje</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card table-card">
+          <h3>Delegaciones de paquetes</h3>
+          <table class="table" id="delegations-table">
+            <thead><tr><th>Pedido</th><th>De → A</th><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card table-card">
+          <h3>Informes de ruta (IA) y gastos</h3>
+          <table class="table" id="reports-table">
+            <thead><tr><th>Ruta</th><th>Resultado</th><th>Consultas IA</th><th>Gastos USD</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
     </section>

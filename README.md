@@ -101,6 +101,50 @@ Flujo completo desde el plan del ERP hasta la entrega confirmada:
    cada bulto con el mismo escáner, con **entregas parciales,
    devoluciones y rechazos** con motivo y receptor.
 
+## Inteligencia operativa (AI-ready)
+
+El sistema deja ganchos para que un agente LLM participe activamente. Cada
+caso, consulta al chofer, notificación e informe se registra y se reenvía
+al webservice de IA configurable (`PUT /api/v1/ai-config`).
+
+- **Monitoreo activo de desvíos**: si el vehículo se aleja de la ruta
+  planificada, la IA le pregunta al chofer el motivo (opciones + texto),
+  registra la respuesta y al cerrar la ruta arma un **informe** con
+  paradas, resultados, consultas, casos, delegaciones y gastos para
+  analizar si lo reportado es coherente y alimentar el algoritmo.
+- **Discrepancia de geolocalización**: si la entrega se confirma lejos de
+  la dirección registrada, se crea un **caso** para corregir la
+  geolocalización (un clic actualiza pedido y maestro de direcciones) o
+  gestionar con vendedor/cliente.
+- **Avisos al cliente en tiempo real**: "tu entrega es la **siguiente**"
+  con ETA; aviso de **retraso** respecto de la hora informada; y
+  solicitud de **feedback** cuando la demora es alta o el local está
+  cerrado (calificación con estrellas en el portal).
+- **Telemetría multi-fuente**: además del GPS del celular, los GPS
+  físicos del vehículo y la dashcam transmiten a `POST /api/v1/telemetry`
+  con token de dispositivo. Si el celular pierde señal (inseguridad,
+  apagado), el sistema sigue por el respaldo y abre un caso; el botón de
+  pánico de cualquier fuente dispara un caso de emergencia.
+- **Pantalla de cabina** (`/cabina?v=PLACA`): asistente fijo del vehículo
+  con próxima parada + ETA, estado de las tres señales GPS, respuesta a
+  las consultas de la IA con un toque y **botón SOS** con protocolo de
+  emergencia.
+
+## Delegación de paquetes entre rutas
+
+Un chofer (o el planificador) puede **delegar** un paquete de su ruta a
+otra ruta planificada; el otro transportista **acepta o rechaza**. Al
+aceptar, la parada queda *delegada* en la ruta origen y el paquete pasa a
+la lista de carga destino para re-escanearse. (`POST /routes/:id/delegate`,
+`POST /delegations/:id/accept|reject`).
+
+## Gastos de ruta
+
+Los choferes registran gastos desde la app (combustible, peaje, parqueo,
+viáticos, reparación…) **vinculados a la ruta y opcionalmente a la parada**
+y con georreferencia; se consolidan en el informe de ruta.
+(`POST /routes/:id/expenses`).
+
 ## Funcionalidades del TMS
 
 | Módulo | Descripción |
@@ -171,8 +215,11 @@ src/webhooks.js      Webhooks globales + webhook por empresa cliente
 src/geo.js           Haversine, interpolación, rumbo, centroides
 public/index.html    TMS (SPA de operaciones, incluye vista Carga)
 public/portal.html   Portal público mobile-first (cotizar/contratar/seguir)
-public/conductor.html App del conductor (ruta GPS, escáner, novedades)
-samples/             Plan de ejemplo del ERP (formato Driv.in)
+public/conductor.html App del conductor (ruta GPS, escáner, gastos, delegación)
+public/cabina.html    Asistente de cabina (pantalla fija del vehículo, SOS)
+src/ai.js            IA operativa: desvíos, casos, notificaciones, telemetría, informe
+samples/             Planes de ejemplo del ERP (formato Driv.in)
+config/              Configuración real de la organización (export driv.in)
 public/docs.html     Documentación de las APIs
 test/run-tests.js    Pruebas del algoritmo y del cotizador
 data/db.json         Base de datos JSON (se genera al arrancar; ignorada en git)

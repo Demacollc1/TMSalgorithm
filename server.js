@@ -13,6 +13,7 @@ const { buildLoadingPlan, loadingSummary } = require('./src/loading');
 const { buildRouteDocuments } = require('./src/billing');
 const { renderRoutePrint } = require('./src/printview');
 const simulator = require('./src/simulator');
+const ai = require('./src/ai');
 const { dispatchWebhooks } = require('./src/webhooks');
 
 const PORT = process.env.PORT || 3000;
@@ -124,6 +125,10 @@ function publicTracking(order) {
     pod: order.pod
       ? { at: order.pod.at, receiver: order.pod.receiver, method: order.pod.method }
       : null,
+    // ¿es la siguiente entrega de su ruta?
+    nextUp: !!(route && route.status === 'en_curso' &&
+      route.stops.find((s) => s.orderId && !['completada', 'delegada'].includes(s.status)) === stop),
+    hasFeedback: !!order.feedback,
   };
 }
 
@@ -476,9 +481,27 @@ async function handleApi(req, res, pathname, query) {
       } else {
         return badRequest(res, 'Envía barcode (escáner) o seq (confirmación manual)');
       }
-      bulto.loaded = true;
-      bulto.loadedAt = new Date().toISOString();
-      bulto.loadMethod = body.barcode ? 'scan' : 'manual';
+      if (body.skip) {
+        // marcar NO CARGADO con motivo (faltante, dañado, no cabe, etc.)
+        if (!body.motivo) return badRequest(res, 'Indica el motivo del no cargado');
+        bulto.skipped = true;
+        bulto.skipReason = body.motivo;
+        bulto.loaded = false;
+        bulto.loadedAt = new Date().toISOString();
+        const order = db.orders.find((o) => o.id === bulto.orderId);
+        logEvent('load.no_cargado', { routeId: route.id, containerId: bulto.containerId, motivo: body.motivo });
+        dispatchWebhooks(
+          'load.skipped',
+          { routeId: route.id, containerId: bulto.containerId, orderId: bulto.orderId, motivo: body.motivo },
+          { companyId: order ? order.companyId : null }
+        );
+      } else {
+        bulto.skipped = false;
+        bulto.skipReason = null;
+        bulto.loaded = true;
+        bulto.loadedAt = new Date().toISOString();
+        bulto.loadMethod = body.barcode ? 'scan' : 'manual';
+      }
       route.loadStatus = 'en_carga';
 
       const summary = loadingSummary(route.loadingPlan);
@@ -537,6 +560,12 @@ async function handleApi(req, res, pathname, query) {
       const confirmed = new Set((body.bultoBarcodes || []).map((c) => String(c).trim()));
       const bultos = (route.loadingPlan || []).filter((b) => b.orderId === order.id);
       for (const b of bultos) {
+        if (b.skipped) {
+          // nunca subió al camión: queda como no cargado, no como fallo de entrega
+          b.delivered = false;
+          b.deliveryStatus = 'no_cargado';
+          continue;
+        }
         const wasConfirmed =
           confirmed.has(b.barcode) || confirmed.has(b.containerId) ||
           confirmed.has(b.altCode) || confirmed.has(b.sourceCode) ||
@@ -564,6 +593,19 @@ async function handleApi(req, res, pathname, query) {
         lat: order.lat,
         lng: order.lng,
       };
+      // IA: discrepancia de geolocalización (posición real vs registrada)
+      if (typeof body.lat === 'number' && typeof body.lng === 'number') {
+        order.pod.actualLat = body.lat;
+        order.pod.actualLng = body.lng;
+        ai.checkGeoDiscrepancy(order, { lat: body.lat, lng: body.lng });
+      }
+      // IA: feedback si hubo demora alta o el cliente estaba cerrado
+      const cerrado = /cerrad/i.test(body.motivo || '');
+      if (order._delayFlag) {
+        ai.requestFeedback(order, 'Tu entrega tomó más tiempo del planificado');
+      } else if (cerrado || resultado === 'rechazado' || resultado === 'devolucion') {
+        ai.requestFeedback(order, cerrado ? 'No pudimos entregarte porque el local estaba cerrado' : 'Tu entrega tuvo una novedad');
+      }
       save();
       logEvent('order.' + order.status, { orderId: order.id, code: order.code, routeId: route.id, resultado });
       dispatchWebhooks(
@@ -572,6 +614,118 @@ async function handleApi(req, res, pathname, query) {
         { companyId: order.companyId }
       );
       return sendJSON(res, 200, { data: order });
+    }
+
+    // Delegación de un paquete (pedido) a otra ruta
+    if (method === 'POST' && id && action === 'delegate') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      const body = await readBody(req);
+      const order = db.orders.find((o) => o.id === body.orderId && o.routeId === route.id);
+      if (!order) return notFound(res, 'Pedido no encontrado en esta ruta');
+      const target = db.routes.find((x) => x.id === body.toRouteId);
+      if (!target) return notFound(res, 'Ruta destino no encontrada');
+      if (target.status !== 'planificada') {
+        return badRequest(res, 'La ruta destino debe estar planificada (aprobada y aún no despachada)');
+      }
+      if (target.id === route.id) return badRequest(res, 'La ruta destino es la misma');
+      const delegation = {
+        id: nextId('DLG'),
+        orderId: order.id,
+        orderCode: order.code,
+        customer: order.customer,
+        fromRouteId: route.id,
+        toRouteId: target.id,
+        motivo: body.motivo || '',
+        status: 'solicitada', // solicitada | aceptada | rechazada
+        requestedAt: new Date().toISOString(),
+        respondedAt: null,
+      };
+      db.delegations.unshift(delegation);
+      save();
+      logEvent('delegation.solicitada', { delegationId: delegation.id, orderCode: order.code, to: target.id });
+      dispatchWebhooks('delegation.requested', delegation, { companyId: order.companyId });
+      return sendJSON(res, 201, { data: delegation });
+    }
+
+    // Respuesta del chofer a una consulta de la IA (desvío de ruta)
+    if (method === 'POST' && id && action === 'answer-consulta') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      const body = await readBody(req);
+      const consulta = ai.answerConsulta(route, body.consultaId, body.answer, body.detail);
+      if (!consulta) return notFound(res, 'Consulta no encontrada');
+      save();
+      return sendJSON(res, 200, { data: consulta });
+    }
+
+    // Informe final de ruta (IA)
+    if (method === 'GET' && id && action === 'report') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      const report = route.aiReport || ai.buildRouteReport(route);
+      return sendJSON(res, 200, { data: report });
+    }
+
+    // Gastos de ruta del chofer (vinculados a la ruta y opcionalmente a una parada)
+    if (id && action === 'expenses') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      if (method === 'GET') {
+        const list = db.expenses.filter((e) => e.routeId === route.id);
+        return sendJSON(res, 200, {
+          data: list,
+          total: Math.round(list.reduce((s, e) => s + e.montoUsd, 0) * 100) / 100,
+        });
+      }
+      if (method === 'POST') {
+        const body = await readBody(req);
+        const monto = Number(body.montoUsd);
+        if (!body.tipo || !(monto > 0)) return badRequest(res, 'Se requieren tipo y montoUsd > 0');
+        const expense = {
+          id: nextId('GTO'),
+          routeId: route.id,
+          vehicleId: route.vehicleId,
+          orderId: body.orderId || null, // parada vinculada
+          tipo: body.tipo, // combustible | peaje | parqueo | alimentacion | viatico | reparacion | otro
+          montoUsd: Math.round(monto * 100) / 100,
+          notas: body.notas || '',
+          lat: typeof body.lat === 'number' ? body.lat : null,
+          lng: typeof body.lng === 'number' ? body.lng : null,
+          at: new Date().toISOString(),
+        };
+        db.expenses.unshift(expense);
+        save();
+        logEvent('expense.registrado', { routeId: route.id, tipo: expense.tipo, montoUsd: expense.montoUsd });
+        return sendJSON(res, 201, { data: expense });
+      }
+    }
+
+    // Botón SOS / protocolo de emergencia (pantalla de cabina)
+    if (method === 'POST' && id && action === 'sos') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      const body = await readBody(req);
+      const kase = ai.createCase(
+        'emergencia',
+        { routeId: route.id, vehicleId: route.vehicleId, motivo: body.motivo || 'SOS activado', lat: body.lat, lng: body.lng },
+        { title: `🚨 EMERGENCIA en ruta ${route.id}: ${body.motivo || 'SOS activado'}`, severity: 'alta' }
+      );
+      save();
+      return sendJSON(res, 201, { data: kase });
+    }
+
+    // Simulación de escenarios para probar la IA (demo)
+    if (method === 'POST' && id && action === 'simulate') {
+      const route = db.routes.find((x) => x.id === id);
+      if (!route) return notFound(res);
+      const body = await readBody(req);
+      if ('deviation' in body) route.simulateDeviation = !!body.deviation;
+      if ('signalLoss' in body) route.simulateSignalLoss = !!body.signalLoss;
+      save();
+      return sendJSON(res, 200, {
+        data: { simulateDeviation: !!route.simulateDeviation, simulateSignalLoss: !!route.simulateSignalLoss },
+      });
     }
 
     if (method === 'POST' && id && action === 'start') {
@@ -818,6 +972,175 @@ async function handleApi(req, res, pathname, query) {
     });
   }
 
+  // ---- delegaciones de paquetes entre rutas -----------------------
+  if (resource === 'delegations') {
+    if (method === 'GET' && !id) {
+      let list = db.delegations;
+      if (query.get('toRouteId')) list = list.filter((d) => d.toRouteId === query.get('toRouteId'));
+      if (query.get('status')) list = list.filter((d) => d.status === query.get('status'));
+      return sendJSON(res, 200, { data: list, count: list.length });
+    }
+    if (method === 'POST' && id && (action === 'accept' || action === 'reject')) {
+      const delegation = db.delegations.find((d) => d.id === id);
+      if (!delegation) return notFound(res);
+      if (delegation.status !== 'solicitada') return badRequest(res, 'La solicitud ya fue respondida');
+      const body = await readBody(req);
+      delegation.respondedAt = new Date().toISOString();
+      if (action === 'reject') {
+        delegation.status = 'rechazada';
+        delegation.responseNotes = body.motivo || '';
+        save();
+        return sendJSON(res, 200, { data: delegation });
+      }
+      // aceptar: mueve el pedido (y sus bultos) de una ruta a la otra
+      const from = db.routes.find((r) => r.id === delegation.fromRouteId);
+      const to = db.routes.find((r) => r.id === delegation.toRouteId);
+      const order = db.orders.find((o) => o.id === delegation.orderId);
+      if (!from || !to || !order) return badRequest(res, 'Ruta u orden ya no existen');
+      if (to.status !== 'planificada') return badRequest(res, 'La ruta destino ya no está planificada');
+      // 1) en la ruta origen la parada queda como delegada
+      const stop = from.stops.find((s) => s.orderId === order.id);
+      if (stop) stop.status = 'delegada';
+      // 2) se agrega la parada al final de la ruta destino
+      const lastEta = (to.stops.filter((s) => s.eta).slice(-1)[0] || {}).eta || '17:00';
+      to.stops.push({
+        seq: to.stops.length + 1,
+        orderId: order.id,
+        lat: order.lat,
+        lng: order.lng,
+        type: order.type,
+        _volumeM3: order.volumeM3 || 0,
+        eta: lastEta,
+        status: 'pendiente',
+        delegatedFrom: from.id,
+      });
+      const pts = [to.origin, ...to.stops.filter((s) => s.status !== 'delegada').map((s) => ({ lat: s.lat, lng: s.lng }))];
+      if (to.returnToOrigin) pts.push(to.origin);
+      to.polyline = pts.map((p) => [p.lat, p.lng]);
+      // 3) los bultos pasan a la lista de carga destino (deben re-escanearse)
+      const moved = (from.loadingPlan || []).filter((b) => b.orderId === order.id);
+      from.loadingPlan = (from.loadingPlan || []).filter((b) => b.orderId !== order.id);
+      if (to.loadingPlan) {
+        let seq = to.loadingPlan.length;
+        for (const b of moved) {
+          to.loadingPlan.push({ ...b, seq: ++seq, loaded: false, loadedAt: null, loadMethod: null, skipped: false, skipReason: null });
+        }
+        if (to.loadStatus === 'cargada') to.loadStatus = 'en_carga';
+      }
+      order.routeId = to.id;
+      delegation.status = 'aceptada';
+      save();
+      logEvent('delegation.aceptada', { delegationId: delegation.id, orderCode: order.code, from: from.id, to: to.id });
+      dispatchWebhooks('delegation.accepted', delegation, { companyId: order.companyId });
+      return sendJSON(res, 200, { data: delegation });
+    }
+  }
+
+  // ---- casos, notificaciones e IA ---------------------------------
+  if (resource === 'cases') {
+    if (method === 'GET' && !id) {
+      let list = db.cases;
+      if (query.get('status')) list = list.filter((c) => c.status === query.get('status'));
+      return sendJSON(res, 200, { data: list.slice(0, 100), count: list.length });
+    }
+    if (method === 'PUT' && id) {
+      const kase = db.cases.find((c) => c.id === id);
+      if (!kase) return notFound(res);
+      const body = await readBody(req);
+      if (body.action === 'corregir_geo' && kase.type === 'geo_discrepancia') {
+        // corrige la geolocalización registrada con la posición real
+        const order = db.orders.find((o) => o.id === kase.data.orderId);
+        if (order && kase.data.real) {
+          order.lat = kase.data.real.lat;
+          order.lng = kase.data.real.lng;
+          const addr = db.addresses.find(
+            (a) => a.client === order.customer || (order.externalRef && a.externalId === Number(order.externalRef))
+          );
+          if (addr) {
+            addr.lat = kase.data.real.lat;
+            addr.lng = kase.data.real.lng;
+            addr.isGeoref = true;
+          }
+        }
+        kase.status = 'resuelto';
+        kase.resolution = 'geolocalización corregida con la posición real de la entrega';
+      } else if (body.action === 'descartar') {
+        kase.status = 'descartado';
+        kase.resolution = body.notes || 'descartado';
+      } else {
+        kase.status = 'resuelto';
+        kase.resolution = body.notes || 'resuelto';
+      }
+      kase.resolvedAt = new Date().toISOString();
+      save();
+      return sendJSON(res, 200, { data: kase });
+    }
+  }
+  if (resource === 'notifications' && method === 'GET') {
+    return sendJSON(res, 200, { data: db.notifications.slice(0, 100) });
+  }
+  if (resource === 'expenses' && method === 'GET') {
+    return sendJSON(res, 200, {
+      data: db.expenses.slice(0, 200),
+      total: Math.round(db.expenses.reduce((s, e) => s + e.montoUsd, 0) * 100) / 100,
+    });
+  }
+  if (resource === 'ai-config') {
+    if (method === 'GET') return sendJSON(res, 200, { data: db.company.ai });
+    if (method === 'PUT') {
+      const body = await readBody(req);
+      for (const k of ['enabled', 'webserviceUrl', 'deviationKm', 'geoDiscrepancyKm', 'delayHoldTicks']) {
+        if (k in body) db.company.ai[k] = body[k];
+      }
+      save();
+      return sendJSON(res, 200, { data: db.company.ai });
+    }
+  }
+
+  // ---- telemetría multi-fuente (GPS del vehículo / dashcam) -------
+  if (resource === 'telemetry') {
+    if (method === 'POST') {
+      const body = await readBody(req);
+      const vehicle = db.vehicles.find(
+        (v) => v.deviceToken === body.token || v.plate === body.plate
+      );
+      if (!vehicle || (body.token && vehicle.deviceToken !== body.token)) {
+        return sendJSON(res, 401, { error: 'Token de dispositivo inválido' });
+      }
+      const source = ['celular', 'gps_vehiculo', 'dashcam'].includes(body.source) ? body.source : 'gps_vehiculo';
+      if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+        return badRequest(res, 'lat y lng numéricos son obligatorios');
+      }
+      ai.recordTelemetry(vehicle.id, source, {
+        lat: body.lat,
+        lng: body.lng,
+        speedKmh: body.speedKmh || null,
+        heading: body.heading || null,
+        event: body.event || null,
+      });
+      // eventos de pánico desde el GPS físico o la dashcam
+      if (['sos', 'panic', 'boton_panico'].includes(String(body.event || '').toLowerCase())) {
+        const route = db.routes.find((r) => r.vehicleId === vehicle.id && r.status === 'en_curso');
+        ai.createCase(
+          'emergencia',
+          { vehicleId: vehicle.id, routeId: route ? route.id : null, fuente: source, lat: body.lat, lng: body.lng },
+          { title: `🚨 Botón de pánico (${source}) en ${vehicle.plate}`, severity: 'alta' }
+        );
+      }
+      save();
+      return sendJSON(res, 200, { data: { ok: true, vehicleId: vehicle.id, source } });
+    }
+    if (method === 'GET') {
+      const out = db.vehicles.map((v) => ({
+        vehicleId: v.id,
+        plate: v.plate,
+        sources: db.telemetry[v.id] || {},
+        best: ai.bestPosition(v.id),
+      }));
+      return sendJSON(res, 200, { data: out });
+    }
+  }
+
   // ---- configuración de facturación electrónica -------------------
   if (resource === 'billing-config') {
     if (method === 'GET') return sendJSON(res, 200, { data: db.company.billing });
@@ -991,6 +1314,26 @@ async function handlePublicApi(req, res, pathname) {
     return sendJSON(res, 200, { data: publicTracking(order) });
   }
 
+  // POST /api/public/v1/feedback — calificación del cliente
+  if (resource === 'feedback' && method === 'POST') {
+    const body = await readBody(req);
+    const order = db.orders.find(
+      (o) => o.trackingCode === String(body.trackingCode || '').toUpperCase()
+    );
+    if (!order) return notFound(res, 'Código de seguimiento no encontrado');
+    const rating = Number(body.rating);
+    if (!(rating >= 1 && rating <= 5)) return badRequest(res, 'rating debe ser de 1 a 5');
+    order.feedback = {
+      rating,
+      comment: String(body.comment || '').slice(0, 500),
+      at: new Date().toISOString(),
+    };
+    save();
+    logEvent('feedback.recibido', { orderId: order.id, rating });
+    dispatchWebhooks('customer.feedback', { orderId: order.id, trackingCode: order.trackingCode, ...order.feedback }, { companyId: order.companyId });
+    return sendJSON(res, 201, { data: { ok: true } });
+  }
+
   return notFound(res, `Ruta de API pública no encontrada: ${method} ${pathname}`);
 }
 
@@ -1130,6 +1473,7 @@ function serveStatic(res, pathname) {
   if (file === '/docs') file = '/docs.html';
   if (file === '/portal' || file === '/portal/') file = '/portal.html';
   if (file === '/conductor' || file === '/conductor/') file = '/conductor.html';
+  if (file === '/cabina' || file === '/cabina/') file = '/cabina.html';
   const full = path.join(PUBLIC_DIR, path.normalize(file));
   if (!full.startsWith(PUBLIC_DIR)) return notFound(res);
   fs.readFile(full, (err, data) => {

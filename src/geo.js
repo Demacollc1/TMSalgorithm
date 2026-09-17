@@ -35,6 +35,25 @@ function bearing(a, b) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
+// Distancia mínima (km) de un punto a una polilínea [[lat,lng],...]
+function pointToPolylineKm(p, polyline) {
+  let best = Infinity;
+  for (let i = 1; i < polyline.length; i++) {
+    const a = { lat: polyline[i - 1][0], lng: polyline[i - 1][1] };
+    const b = { lat: polyline[i][0], lng: polyline[i][1] };
+    // proyección aproximada en coordenadas planas (válida a escala urbana)
+    const dx = b.lng - a.lng;
+    const dy = b.lat - a.lat;
+    const len2 = dx * dx + dy * dy;
+    let t = len2 ? ((p.lng - a.lng) * dx + (p.lat - a.lat) * dy) / len2 : 0;
+    t = Math.max(0, Math.min(1, t));
+    const proj = { lat: a.lat + dy * t, lng: a.lng + dx * t };
+    const d = haversineKm(p, proj);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
 function centroid(points) {
   if (!points.length) return null;
   const sum = points.reduce(
@@ -44,4 +63,4 @@ function centroid(points) {
   return { lat: sum.lat / points.length, lng: sum.lng / points.length };
 }
 
-module.exports = { haversineKm, interpolate, bearing, centroid };
+module.exports = { haversineKm, interpolate, bearing, centroid, pointToPolylineKm };

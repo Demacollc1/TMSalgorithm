@@ -483,6 +483,58 @@ test('buildFromConfig: mapea todas las entidades de DEMACO', () => {
   assert.strictEqual(matriz.deposit.name, 'Demaco Matriz');
 });
 
+console.log('\nIA operativa y telemetría:');
+
+const { pointToPolylineKm } = require('../src/geo');
+const ai = require('../src/ai');
+const { db } = require('../src/store');
+
+test('pointToPolylineKm: detecta lejanía respecto de la ruta', () => {
+  const poly = [[-2.15, -79.88], [-2.10, -79.90], [-2.05, -79.92]];
+  assert.ok(pointToPolylineKm({ lat: -2.10, lng: -79.90 }, poly) < 0.05);
+  assert.ok(pointToPolylineKm({ lat: -2.10, lng: -79.80 }, poly) > 5);
+});
+
+test('checkDeviation: crea consulta al chofer con un desvío grande', () => {
+  const route = { id: 'RUT-T1', polyline: [[-2.15, -79.88], [-2.05, -79.92]], aiConsultas: [] };
+  const c = ai.checkDeviation(route, { lat: -2.10, lng: -79.80 });
+  assert.ok(c && c.status === 'pendiente');
+  assert.ok(c.deviationKm > 0.5);
+  // no duplica mientras haya una pendiente
+  assert.strictEqual(ai.checkDeviation(route, { lat: -2.10, lng: -79.80 }), undefined);
+  const ans = ai.answerConsulta(route, c.id, 'Tráfico / vía cerrada');
+  assert.strictEqual(ans.status, 'respondida');
+});
+
+test('checkGeoDiscrepancy: crea caso cuando la entrega está lejos de la dirección', () => {
+  const order = { id: 'ORD-T1', code: 'P-T1', customer: 'Cliente X', routeId: 'RUT-T1', lat: -2.15, lng: -79.88 };
+  const kase = ai.checkGeoDiscrepancy(order, { lat: -2.16, lng: -79.87 });
+  assert.ok(kase && kase.type === 'geo_discrepancia');
+  // a 50 metros no crea caso
+  assert.strictEqual(ai.checkGeoDiscrepancy({ ...order, id: 'ORD-T2' }, { lat: -2.1502, lng: -79.8801 }), undefined);
+});
+
+test('bestPosition: prioriza celular y cae a GPS del vehículo', () => {
+  ai.recordTelemetry('VEH-T', 'gps_vehiculo', { lat: 1, lng: 2 });
+  assert.strictEqual(ai.bestPosition('VEH-T').source, 'gps_vehiculo');
+  ai.recordTelemetry('VEH-T', 'celular', { lat: 3, lng: 4 });
+  assert.strictEqual(ai.bestPosition('VEH-T').source, 'celular');
+  // celular viejo → respaldo
+  db.telemetry['VEH-T'].celular.at = new Date(Date.now() - 10 * 60000).toISOString();
+  assert.strictEqual(ai.bestPosition('VEH-T').source, 'gps_vehiculo');
+});
+
+test('loadingSummary: bulto no cargado con motivo cierra la carga', () => {
+  const plan = [
+    { seq: 1, loaded: true, weightKg: 10, volumeM3: 0.1, phase: 1 },
+    { seq: 2, loaded: false, skipped: true, skipReason: 'faltante en bodega', weightKg: 5, volumeM3: 0.1, phase: 3 },
+  ];
+  const s = loadingSummary(plan);
+  assert.strictEqual(s.skipped, 1);
+  assert.strictEqual(s.pending, 0);
+  assert.strictEqual(s.complete, true);
+});
+
 console.log('\nFacturación electrónica:');
 
 test('claveAcceso: 49 dígitos numéricos con verificador módulo 11', () => {
