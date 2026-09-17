@@ -764,8 +764,9 @@ function renderPlanning() {
   drawRoutesOnMap(map, 'plan', visible);
   renderRoutesList(document.getElementById('routes-list'), visible, { actions: true });
   const proposals = visible.filter((r) => r.status === 'propuesta');
+  const porCalles = visible.some((r) => r.routeSource === 'osrm');
   document.getElementById('opt-summary').innerHTML = visible.length
-    ? `<strong>${visible.length}</strong> rutas (${proposals.length} propuestas por aprobar) · <strong>${(visible.reduce((s, r) => s + r.distanceKm, 0)).toFixed(1)} km</strong> totales` +
+    ? `<strong>${visible.length}</strong> rutas (${proposals.length} propuestas por aprobar) · <strong>${(visible.reduce((s, r) => s + r.distanceKm, 0)).toFixed(1)} km</strong> totales · ${porCalles ? '🛣️ calles reales' : '📏 línea recta (sin OSRM)'}` +
       (proposals.length ? ` <button class="btn-link" onclick="approveAll()">Aprobar todas</button>` : '')
     : '';
 }
@@ -838,7 +839,8 @@ document.getElementById('btn-optimize').addEventListener('click', async () => {
         },
       },
     });
-    toast(`Se generaron ${result.summary.totalRoutes} rutas (${result.summary.totalDistanceKm} km)`);
+    const via = result.summary.routing === 'osrm' ? 'por calles reales con tráfico' : 'línea recta (sin conexión a OSRM)';
+    toast(`Se generaron ${result.summary.totalRoutes} rutas · ${result.summary.totalDistanceKm} km · ${via}`);
     if (result.unassigned.length) toast(`${result.unassigned.length} pedidos no pudieron asignarse por capacidad`, true);
     render();
   } catch (err) {

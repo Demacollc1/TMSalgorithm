@@ -1,6 +1,7 @@
 'use strict';
 
 const { haversineKm, centroid } = require('./geo');
+const routing = require('./routing');
 
 /**
  * Optimizador de rutas (VRP) para última milla.
@@ -25,14 +26,16 @@ function angleFrom(depot, p) {
   return Math.atan2(p.lat - depot.lat, p.lng - depot.lng);
 }
 
-function routeDistanceKm(points) {
+// Distancia entre dos puntos. Usa la matriz vial (por _idx) cuando ambos
+// puntos están en ella; si no, cae a distancia recta. `km` inyectable.
+function routeDistanceKm(points, km = haversineKm) {
   let d = 0;
-  for (let i = 1; i < points.length; i++) d += haversineKm(points[i - 1], points[i]);
+  for (let i = 1; i < points.length; i++) d += km(points[i - 1], points[i]);
   return d;
 }
 
 // --- Construcción: vecino más cercano desde un origen ---
-function nearestNeighborOrder(origin, orders) {
+function nearestNeighborOrder(origin, orders, km = haversineKm) {
   const remaining = orders.slice();
   const sequence = [];
   let current = origin;
@@ -40,7 +43,7 @@ function nearestNeighborOrder(origin, orders) {
     let bestIdx = 0;
     let bestDist = Infinity;
     for (let i = 0; i < remaining.length; i++) {
-      const d = haversineKm(current, remaining[i]);
+      const d = km(current, remaining[i]);
       if (d < bestDist) {
         bestDist = d;
         bestIdx = i;
@@ -54,7 +57,7 @@ function nearestNeighborOrder(origin, orders) {
 }
 
 // --- Mejora: 2-opt sobre la secuencia de paradas ---
-function twoOpt(origin, sequence, returnToOrigin) {
+function twoOpt(origin, sequence, returnToOrigin, km = haversineKm) {
   if (sequence.length < 3) return sequence;
   let best = sequence.slice();
   let improved = true;
@@ -63,7 +66,7 @@ function twoOpt(origin, sequence, returnToOrigin) {
     if (returnToOrigin) pts.push(origin);
     return pts;
   };
-  let bestDist = routeDistanceKm(pathPoints(best));
+  let bestDist = routeDistanceKm(pathPoints(best), km);
   while (improved) {
     improved = false;
     for (let i = 0; i < best.length - 1; i++) {
@@ -71,7 +74,7 @@ function twoOpt(origin, sequence, returnToOrigin) {
         const candidate = best
           .slice(0, i)
           .concat(best.slice(i, j + 1).reverse(), best.slice(j + 1));
-        const d = routeDistanceKm(pathPoints(candidate));
+        const d = routeDistanceKm(pathPoints(candidate), km);
         if (d < bestDist - 1e-9) {
           best = candidate;
           bestDist = d;
@@ -136,12 +139,15 @@ function timeWindowNudge(sequence) {
     .map((x) => x.o);
 }
 
-function buildStops(origin, sequence, startTimeMin, speedKmh, serviceMin) {
+// Construye las paradas con ETA. Usa el tiempo vial (matriz) ajustado por
+// tráfico según la hora de llegada; si no hay matriz, cae a km/velocidad.
+function buildStops(origin, sequence, startTimeMin, speedKmh, serviceMin, minFn, trafficFn) {
   let t = startTimeMin;
   let prev = origin;
   return sequence.map((order, i) => {
-    const legKm = haversineKm(prev, order);
-    t += (legKm / speedKmh) * 60;
+    const baseMin = minFn ? minFn(prev, order) : (haversineKm(prev, order) / speedKmh) * 60;
+    const factor = trafficFn ? trafficFn(minutesToHHMM(t)) : 1;
+    t += baseMin * factor;
     const eta = minutesToHHMM(t);
     t += serviceMin;
     prev = order;
@@ -206,19 +212,21 @@ function sweepAssign(depot, orders, vehicles) {
   return { bags, unassigned };
 }
 
-function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta, speedKmh = DEFAULT_SPEED_KMH, serviceMin = SERVICE_MIN }) {
+async function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta, speedKmh = DEFAULT_SPEED_KMH, serviceMin = SERVICE_MIN, km = haversineKm, minFn = null, trafficFn = null }) {
   if (!orders.length) return null;
-  let seq = nearestNeighborOrder(origin, orders);
-  seq = twoOpt(origin, seq, returnToOrigin);
+  let seq = nearestNeighborOrder(origin, orders, km);
+  seq = twoOpt(origin, seq, returnToOrigin, km);
   seq = repairPickupFeasibility(seq, vehicle.capacityKg);
   seq = timeWindowNudge(seq);
 
   const points = [origin, ...seq];
   if (returnToOrigin) points.push(origin);
-  const distanceKm = routeDistanceKm(points);
-  const stops = buildStops(origin, seq, hhmmToMinutes(startHHMM), speedKmh, serviceMin);
-  const durationMin =
-    (distanceKm / speedKmh) * 60 + seq.length * serviceMin;
+  // trazado real por calles (con distancia/tiempo viales); fallback interno
+  const geo = await routing.routeGeometry(points);
+  const distanceKm = geo.distanceKm || routeDistanceKm(points, km);
+  const stops = buildStops(origin, seq, hhmmToMinutes(startHHMM), speedKmh, serviceMin, minFn, trafficFn);
+  const lastEta = stops.length ? hhmmToMinutes(stops[stops.length - 1].eta) : hhmmToMinutes(startHHMM);
+  const durationMin = Math.round(lastEta - hhmmToMinutes(startHHMM) + serviceMin);
   const loadKg = orders
     .filter((o) => o.type !== 'recoleccion')
     .reduce((s, o) => s + (o.weightKg || 0), 0);
@@ -233,7 +241,8 @@ function buildRoute({ vehicle, orders, origin, returnToOrigin, startHHMM, meta, 
       Math.round(orders.reduce((s, o) => s + (o.volumeM3 || 0), 0) * 100) / 100,
     origin,
     returnToOrigin,
-    polyline: points.map((p) => [p.lat, p.lng]),
+    polyline: geo.polyline && geo.polyline.length ? geo.polyline : points.map((p) => [p.lat, p.lng]),
+    routeSource: geo.source, // 'osrm' (calles reales) | 'haversine' (recta)
     distanceKm: Math.round(distanceKm * 100) / 100,
     durationMin: Math.round(durationMin),
     loadKg: Math.round(loadKg * 10) / 10,
@@ -372,12 +381,25 @@ function planTrailerDrop(route, vehicle, trailer, yards, returnToDepot, pickupAt
  * @param {Object} params.options {useNodriza, startTime, returnToDepot, useTrailers, trailerPickup: 'fin_de_ruta'|'dejar'}
  * @returns {{routes: Array, unassigned: Array, summary: Object}}
  */
-function optimize({ depot, orders, vehicles, trailers = [], yards = [], options = {} }) {
+async function optimize({ depot, orders, vehicles, trailers = [], yards = [], options = {} }) {
   const startHHMM = options.startTime || '08:30';
   const returnToDepot = options.returnToDepot !== false;
   const useNodriza = !!options.useNodriza;
   const speedKmh = Number(options.speedKmh) > 0 ? Number(options.speedKmh) : DEFAULT_SPEED_KMH;
   const serviceMin = Number(options.serviceTimeMin) >= 0 ? Number(options.serviceTimeMin) : SERVICE_MIN;
+
+  // ---- matriz vial (calles reales) para depósito + pedidos ----
+  const matrixPoints = [depot, ...orders];
+  const { dist, dur, source: matrixSource } = await routing.roadMatrix(matrixPoints);
+  const sf = routing.getConfig().streetFactor || 1.3;
+  depot._idx = 0;
+  orders.forEach((o, i) => (o._idx = i + 1));
+  // distancia (km) y tiempo (min) viales; caen a recta×factor fuera de matriz
+  const km = (a, b) =>
+    a && b && a._idx != null && b._idx != null ? dist[a._idx][b._idx] : haversineKm(a, b) * sf;
+  const minFn = (a, b) =>
+    a && b && a._idx != null && b._idx != null ? dur[a._idx][b._idx] : (haversineKm(a, b) * sf / speedKmh) * 60;
+  const trafficFn = (hhmm) => routing.trafficMultiplier(hhmm);
 
   const motherships = vehicles.filter((v) => v.isNodriza);
   const satellites = vehicles.filter((v) => !v.isNodriza);
@@ -396,10 +418,11 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
     // 3) la nodriza visita los puntos de transbordo (NN + 2-opt)
     const nodriza = motherships[0];
     const totalKg = orders.reduce((s, o) => s + (o.weightKg || 0), 0);
-    let tpSeq = nearestNeighborOrder(depot, transferPoints);
-    tpSeq = twoOpt(depot, tpSeq, returnToDepot);
+    let tpSeq = nearestNeighborOrder(depot, transferPoints, km);
+    tpSeq = twoOpt(depot, tpSeq, returnToDepot, km);
     const nodrizaPoints = [depot, ...tpSeq];
     if (returnToDepot) nodrizaPoints.push(depot);
+    const nodrizaGeo = await routing.routeGeometry(nodrizaPoints);
     routes.push({
       vehicleId: nodriza.id,
       isNodriza: true,
@@ -419,10 +442,11 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
       })),
       origin: depot,
       returnToOrigin: returnToDepot,
-      polyline: nodrizaPoints.map((p) => [p.lat, p.lng]),
-      distanceKm: Math.round(routeDistanceKm(nodrizaPoints) * 100) / 100,
+      polyline: nodrizaGeo.polyline && nodrizaGeo.polyline.length ? nodrizaGeo.polyline : nodrizaPoints.map((p) => [p.lat, p.lng]),
+      routeSource: nodrizaGeo.source,
+      distanceKm: nodrizaGeo.distanceKm || Math.round(routeDistanceKm(nodrizaPoints, km) * 100) / 100,
       durationMin: Math.round(
-        (routeDistanceKm(nodrizaPoints) / DEFAULT_SPEED_KMH) * 60 +
+        routeDistanceKm(nodrizaPoints, km) / DEFAULT_SPEED_KMH * 60 +
           tpSeq.length * SERVICE_MIN * 2
       ),
       loadKg: Math.round(totalKg * 10) / 10,
@@ -432,10 +456,11 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
     });
     // 4) cada satélite reparte su cluster desde el punto de transbordo
     const tpByCluster = transferPoints;
-    clusters.forEach((cluster, i) => {
+    for (let i = 0; i < clusters.length; i++) {
+      const cluster = clusters[i];
       const vehicle = satellites[i % satellites.length];
       const tp = tpByCluster[i];
-      const route = buildRoute({
+      const route = await buildRoute({
         vehicle,
         orders: cluster,
         origin: { lat: tp.lat, lng: tp.lng, name: tp.name },
@@ -444,9 +469,12 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
         meta: { fedByNodriza: nodriza.id, transferPointId: tp.id },
         speedKmh,
         serviceMin,
+        km,
+        minFn,
+        trafficFn,
       });
       if (route) routes.push(route);
-    });
+    }
   } else {
     // VRP clásico: barrido + NN + 2-opt por vehículo
     const fleet = satellites.length ? satellites : vehicles;
@@ -493,7 +521,8 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
     }
 
     unassigned = rest;
-    bags.forEach((bag, i) => {
+    for (let i = 0; i < bags.length; i++) {
+      const bag = bags[i];
       const vehicle = fleet[i];
       const trailer = trailerByVehicle[vehicle.id];
       const effective = trailer
@@ -503,7 +532,7 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
             capacityM3: (vehicle.capacityM3 || 0) + trailer.capacityM3,
           }
         : vehicle;
-      const route = buildRoute({
+      const route = await buildRoute({
         vehicle: effective,
         orders: bag,
         origin: depot,
@@ -512,8 +541,11 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
         meta: {},
         speedKmh,
         serviceMin,
+        km,
+        minFn,
+        trafficFn,
       });
-      if (!route) return;
+      if (!route) continue;
       if (trailer) {
         planTrailerDrop(
           route,
@@ -525,7 +557,7 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
         );
       }
       routes.push(route);
-    });
+    }
   }
 
   const summary = {
@@ -538,6 +570,7 @@ function optimize({ depot, orders, vehicles, trailers = [], yards = [], options 
       Math.round(routes.reduce((s, r) => s + r.distanceKm, 0) * 100) / 100,
     totalDurationMin: routes.reduce((s, r) => s + r.durationMin, 0),
     unassignedCount: unassigned.length,
+    routing: matrixSource, // 'osrm' (calles reales) | 'haversine' (recta)
   };
 
   return { routes, unassigned, summary };

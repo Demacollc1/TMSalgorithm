@@ -42,6 +42,15 @@ const db = {
       geoDiscrepancyKm: 0.3, // distancia entre entrega real y dirección registrada
       delayHoldTicks: 45, // espera en cliente que dispara aviso de retraso (~90 s sim)
     },
+    // ruteo por calles reales + tráfico (motor OSRM por defecto)
+    routing: {
+      enabled: true,
+      provider: 'osrm', // osrm | google | mapbox
+      osrmUrl: 'https://router.project-osrm.org',
+      apiKey: '', // para tráfico en vivo con Google/Mapbox
+      streetFactor: 1.3, // recta→calle, solo para el respaldo sin internet
+      avgSpeedKmh: 30,
+    },
   },
   billingSeq: 140100, // secuencial de comprobantes (guías y facturas)
   companies: [], // empresas cliente (tenants): ERPs, e-commerce, portal público

@@ -7,6 +7,7 @@ const { URL } = require('url');
 
 const { db, nextId, init, save, reset, logEvent, logIntegration, newApiKey, newTrackingCode } = require('./src/store');
 const { optimize } = require('./src/optimizer');
+const routing = require('./src/routing');
 const { quote, quoteItems } = require('./src/pricing');
 const packages = require('./src/packages');
 const { mapPlan } = require('./src/importer');
@@ -366,7 +367,7 @@ async function handleApi(req, res, pathname, query) {
       depot = { name: dep.name, address: dep.address, lat: dep.lat, lng: dep.lng };
     }
 
-    const result = optimize({
+    const result = await optimize({
       depot,
       orders,
       vehicles,
@@ -1097,6 +1098,18 @@ async function handleApi(req, res, pathname, query) {
       return sendJSON(res, 200, { data: db.company.ai });
     }
   }
+  if (resource === 'routing-config') {
+    if (method === 'GET') return sendJSON(res, 200, { data: db.company.routing });
+    if (method === 'PUT') {
+      const body = await readBody(req);
+      for (const k of ['enabled', 'provider', 'osrmUrl', 'apiKey', 'streetFactor', 'avgSpeedKmh']) {
+        if (k in body) db.company.routing[k] = body[k];
+      }
+      routing.configure(db.company.routing);
+      save();
+      return sendJSON(res, 200, { data: db.company.routing });
+    }
+  }
 
   // ---- telemetría multi-fuente (GPS del vehículo / dashcam) -------
   if (resource === 'telemetry') {
@@ -1565,6 +1578,7 @@ const server = http.createServer(async (req, res) => {
 
 if (require.main === module) {
   init();
+  if (db.company.routing) routing.configure(db.company.routing);
   simulator.start();
   server.listen(PORT, () => {
     console.log(`Macotrans TMS escuchando en http://localhost:${PORT}`);

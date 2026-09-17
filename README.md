@@ -157,6 +157,24 @@ y con georreferencia; se consolidan en el informe de ruta.
 | **Empresas** | Tenants (ERP / e-commerce / portal) con API keys (ver, copiar, regenerar), webhook por empresa y auditoría del API de integración. |
 | **Integraciones** | Webhooks globales por evento y API REST completa. |
 
+## Ruteo por calles reales y tráfico (src/routing.js)
+
+El optimizador ya **no usa distancias en línea recta**: calcula la ruta por
+la **red vial real** con el motor **OSRM** (gratuito, sin API key) y dibuja
+el trazado real de las calles en el mapa. Los tiempos se ajustan con un
+**modelo de tráfico por hora del día** (horas pico de Guayaquil), así que
+las ETAs y el orden de las paradas consideran la congestión.
+
+- **Sin API key**: OSRM público da calles reales; el tráfico lo aporta el
+  modelo horario configurable.
+- **Con API key** (Google/Mapbox, en `routing-config`): tráfico en vivo.
+- **Sin internet**: cae a distancia recta × factor calle para no romperse.
+
+Config y estado en `GET/PUT /api/v1/routing-config`. Cada ruta reporta
+`routeSource` (`osrm` = calles reales, `haversine` = recta) y el resumen de
+la planificación indica `routing`. En producción conviene **auto-hospedar
+OSRM** con el mapa de Ecuador para velocidad y límites propios.
+
 ## El algoritmo (src/optimizer.js)
 
 1. **Asignación** — barrido angular (*sweep*) alrededor del depósito,

@@ -2,6 +2,9 @@
 
 /* Pruebas del motor de optimización y utilidades geográficas. */
 
+// ruteo offline en pruebas: matriz por distancia recta (rápido, determinista)
+process.env.ROUTING_DISABLE = '1';
+
 const assert = require('assert');
 const { haversineKm, centroid, interpolate } = require('../src/geo');
 const { quote, TARIFF } = require('../src/pricing');
@@ -23,15 +26,22 @@ const {
 
 let passed = 0;
 let failed = 0;
+// runner secuencial que soporta pruebas sync y async (await optimize)
+let chain = Promise.resolve();
 function test(name, fn) {
-  try {
-    fn();
-    passed += 1;
-    console.log(`  ✔ ${name}`);
-  } catch (err) {
-    failed += 1;
-    console.error(`  ✘ ${name}\n    ${err.message}`);
-  }
+  chain = chain.then(async () => {
+    try {
+      await fn();
+      passed += 1;
+      console.log(`  ✔ ${name}`);
+    } catch (err) {
+      failed += 1;
+      console.error(`  ✘ ${name}\n    ${err.message}`);
+    }
+  });
+}
+function section(title) {
+  chain = chain.then(() => console.log(title));
 }
 
 const DEPOT = { lat: -33.404, lng: -70.6883 };
@@ -40,7 +50,7 @@ function makeOrder(id, lat, lng, weightKg = 100, type = 'entrega') {
   return { id, lat, lng, weightKg, volumeM3: 0.5, type, timeWindow: { start: '09:00', end: '18:00' } };
 }
 
-console.log('\nGeo:');
+section('\nGeo:');
 
 test('haversine: Santiago–Valparaíso ≈ 100 km', () => {
   const stgo = { lat: -33.4489, lng: -70.6693 };
@@ -63,7 +73,7 @@ test('interpolate: punto medio', () => {
   assert.deepStrictEqual(m, { lat: 1, lng: 1 });
 });
 
-console.log('\nConstrucción de rutas:');
+section('\nConstrucción de rutas:');
 
 test('vecino más cercano visita el punto más próximo primero', () => {
   const near = makeOrder('near', DEPOT.lat + 0.01, DEPOT.lng);
@@ -88,7 +98,7 @@ test('2-opt no empeora la distancia', () => {
   assert.strictEqual(improved.length, orders.length);
 });
 
-console.log('\nRecolecciones (carga a bordo):');
+section('\nRecolecciones (carga a bordo):');
 
 test('la carga nunca excede la capacidad con recolecciones', () => {
   // capacidad 300; entregas 250; recolección de 200 al inicio violaría capacidad
@@ -116,7 +126,7 @@ test('recolección factible se mantiene en su posición', () => {
   assert.deepStrictEqual(repaired.map((o) => o.id), ['d1', 'p1', 'd2']);
 });
 
-console.log('\nAsignación por capacidad:');
+section('\nAsignación por capacidad:');
 
 test('sweep respeta capacidad y reporta no asignados', () => {
   const vehicles = [
@@ -138,7 +148,7 @@ test('sweep respeta capacidad y reporta no asignados', () => {
   assert.strictEqual(unassigned.length, 1);
 });
 
-console.log('\nOptimización completa:');
+section('\nOptimización completa:');
 
 const FLEET = [
   { id: 'nodriza', capacityKg: 8000, capacityM3: 40, isNodriza: true },
@@ -156,8 +166,8 @@ const ORDERS = [
   makeOrder('o8', -33.3901, -70.5754, 88),
 ];
 
-test('modo clásico: todos los pedidos quedan en alguna ruta', () => {
-  const { routes, unassigned, summary } = optimize({
+test('modo clásico: todos los pedidos quedan en alguna ruta', async () => {
+  const { routes, unassigned, summary } = await optimize({
     depot: DEPOT,
     orders: ORDERS,
     vehicles: FLEET,
@@ -171,14 +181,14 @@ test('modo clásico: todos los pedidos quedan en alguna ruta', () => {
   assert.ok(routes.every((r) => r.vehicleId !== 'nodriza'));
 });
 
-test('modo clásico: cada pedido aparece exactamente una vez', () => {
-  const { routes } = optimize({ depot: DEPOT, orders: ORDERS, vehicles: FLEET, options: {} });
+test('modo clásico: cada pedido aparece exactamente una vez', async () => {
+  const { routes } = await optimize({ depot: DEPOT, orders: ORDERS, vehicles: FLEET, options: {} });
   const ids = routes.flatMap((r) => r.stops.filter((s) => s.orderId).map((s) => s.orderId));
   assert.strictEqual(new Set(ids).size, ids.length, 'hay pedidos duplicados entre rutas');
 });
 
-test('modo nodriza: genera ruta de transbordo + rutas satélite', () => {
-  const { routes } = optimize({
+test('modo nodriza: genera ruta de transbordo + rutas satélite', async () => {
+  const { routes } = await optimize({
     depot: DEPOT,
     orders: ORDERS,
     vehicles: FLEET,
@@ -205,8 +215,8 @@ test('kMeans: particiona sin perder pedidos', () => {
   assert.ok(clusters.length >= 1 && clusters.length <= 3);
 });
 
-test('las paradas incluyen ETA con formato HH:MM', () => {
-  const { routes } = optimize({ depot: DEPOT, orders: ORDERS, vehicles: FLEET, options: {} });
+test('las paradas incluyen ETA con formato HH:MM', async () => {
+  const { routes } = await optimize({ depot: DEPOT, orders: ORDERS, vehicles: FLEET, options: {} });
   for (const r of routes) {
     for (const s of r.stops) {
       assert.ok(/^\d{2}:\d{2}$/.test(s.eta), `ETA inválida: ${s.eta}`);
@@ -214,7 +224,7 @@ test('las paradas incluyen ETA con formato HH:MM', () => {
   }
 });
 
-console.log('\nCotizador de fletes:');
+section('\nCotizador de fletes:');
 
 const STGO = { lat: -33.4489, lng: -70.6693 };
 const LASCONDES = { lat: -33.4172, lng: -70.6015 };
@@ -246,7 +256,7 @@ test('quote: valida coordenadas', () => {
   assert.throws(() => quote({ origin: STGO, destination: { lat: 'x' }, weightKg: 1 }));
 });
 
-console.log('\nTipos de paquete y peso facturable:');
+section('\nTipos de paquete y peso facturable:');
 
 const { measureItems, measureItem, catalog } = require('../src/packages');
 const { quoteItems } = require('../src/pricing');
@@ -303,7 +313,7 @@ test('quoteItems: tubería agrega recargo de carga larga', () => {
   assert.ok(q.breakdown.cargaLarga > 0);
 });
 
-console.log('\nIdentificadores:');
+section('\nIdentificadores:');
 
 test('trackingCode: formato MAC-XXXXXX y sin colisiones evidentes', () => {
   const seen = new Set();
@@ -322,7 +332,7 @@ test('apiKey: prefijo mk_ y única', () => {
   assert.notStrictEqual(a, b);
 });
 
-console.log('\nMódulo de carga:');
+section('\nMódulo de carga:');
 
 test('clasificación: tubos van a la parrilla', () => {
   const c = classifyBulto({ weightKg: 14, description: 'TUBO PVC PRESION 32mmx6m' });
@@ -393,7 +403,7 @@ test('resumen: detecta carga completa', () => {
   assert.strictEqual(loadingSummary(plan).complete, true);
 });
 
-console.log('\nImportador de planes (formato Driv.in):');
+section('\nImportador de planes (formato Driv.in):');
 
 test('mapPlan: importa el plan de ejemplo del ERP', () => {
   const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'samples', 'plan-demaco.json'), 'utf8'));
@@ -433,7 +443,7 @@ test('extractContainerId: obtiene el Id. Contenedor del campo code', () => {
   assert.strictEqual(extractContainerId(null, 'ALT-1'), 'ALT-1');
 });
 
-console.log('\nRemolques plegables:');
+section('\nRemolques plegables:');
 
 const DEPOT2 = { lat: -2.15, lng: -79.88 };
 const YARDS = [
@@ -445,7 +455,7 @@ function volOrder(id, lat, lng, weightKg, volumeM3) {
   return { id, lat, lng, weightKg, volumeM3, type: 'entrega', timeWindow: { start: '09:00', end: '18:00' } };
 }
 
-test('remolque: se acopla cuando falta volumen y el camión tiene bola', () => {
+test('remolque: se acopla cuando falta volumen y el camión tiene bola', async () => {
   const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
   const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
   // 40 m³ de tubos/tanques livianos: no caben en 20 m³ sin remolque
@@ -454,9 +464,9 @@ test('remolque: se acopla cuando falta volumen y el camión tiene bola', () => {
     volOrder('o2', -2.12, -79.92, 300, 15),
     volOrder('o3', -2.20, -79.90, 300, 10),
   ];
-  const sin = optimize({ depot: DEPOT2, orders, vehicles, trailers: [], yards: YARDS, options: {} });
+  const sin = await optimize({ depot: DEPOT2, orders, vehicles, trailers: [], yards: YARDS, options: {} });
   assert.ok(sin.unassigned.length > 0, 'sin remolque debe sobrar volumen');
-  const con = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  const con = await optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
   assert.strictEqual(con.unassigned.length, 0, 'con remolque todo debe caber');
   const route = con.routes[0];
   assert.strictEqual(route.trailerId, 't1');
@@ -474,34 +484,34 @@ test('remolque: se acopla cuando falta volumen y el camión tiene bola', () => {
   assert.ok(orderStops.length === 3);
 });
 
-test('remolque: opción dejar en acopio no agrega parada de retiro', () => {
+test('remolque: opción dejar en acopio no agrega parada de retiro', async () => {
   const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
   const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
   const orders = [volOrder('o1', -2.09, -79.91, 300, 25), volOrder('o2', -2.20, -79.90, 300, 10)];
-  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: { trailerPickup: 'dejar' } });
+  const r = await optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: { trailerPickup: 'dejar' } });
   const route = r.routes[0];
   assert.ok(route.stops.some((s) => s.trailerAction === 'drop'));
   assert.ok(!route.stops.some((s) => s.trailerAction === 'pickup'));
   assert.strictEqual(route.trailerPickupAtEnd, false);
 });
 
-test('remolque: nunca se acopla a un vehículo sin bola', () => {
+test('remolque: nunca se acopla a un vehículo sin bola', async () => {
   const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: false }];
   const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
   const orders = [volOrder('o1', -2.09, -79.91, 300, 25), volOrder('o2', -2.20, -79.90, 300, 10)];
-  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  const r = await optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
   assert.ok(r.routes.every((x) => !x.trailerId));
   assert.ok(r.unassigned.length > 0, 'sin bola, el sobrante de volumen queda sin asignar');
 });
 
-test('remolque: la carga volumétrica previa al soltado va en fase 0 (remolque)', () => {
+test('remolque: la carga volumétrica previa al soltado va en fase 0 (remolque)', async () => {
   const vehicles = [{ id: 'v1', capacityKg: 5000, capacityM3: 20, hasTowHitch: true }];
   const trailers = [{ id: 't1', code: 'RMQ-01', capacityKg: 1500, capacityM3: 28, status: 'disponible' }];
   const orders = [
     { ...volOrder('o1', -2.09, -79.91, 300, 25), bultos: [{ containerId: 'c1', barcode: 'c1', description: 'TANQUE 1000L', weightKg: 300, volumeM3: 25 }] },
     { ...volOrder('o2', -2.20, -79.90, 100, 5), bultos: [{ containerId: 'c2', barcode: 'c2', description: 'CAJA ACCESORIOS', weightKg: 100, volumeM3: 5 }] },
   ];
-  const r = optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
+  const r = await optimize({ depot: DEPOT2, orders, vehicles, trailers, yards: YARDS, options: {} });
   const route = r.routes[0];
   const plan = buildLoadingPlan(route, orders);
   const tanque = plan.find((b) => b.containerId === 'c1');
@@ -510,7 +520,7 @@ test('remolque: la carga volumétrica previa al soltado va en fase 0 (remolque)'
   assert.strictEqual(plan[0].containerId, 'c1', 'la fase 0 se carga primero');
 });
 
-console.log('\nDatos reales (config driv.in):');
+section('\nDatos reales (config driv.in):');
 
 test('buildFromConfig: mapea todas las entidades de DEMACO', () => {
   const { buildFromConfig } = require('../src/realdata');
@@ -540,7 +550,7 @@ test('buildFromConfig: mapea todas las entidades de DEMACO', () => {
   assert.strictEqual(matriz.deposit.name, 'Demaco Matriz');
 });
 
-console.log('\nIA operativa y telemetría:');
+section('\nIA operativa y telemetría:');
 
 const { pointToPolylineKm } = require('../src/geo');
 const ai = require('../src/ai');
@@ -592,7 +602,32 @@ test('loadingSummary: bulto no cargado con motivo cierra la carga', () => {
   assert.strictEqual(s.complete, true);
 });
 
-console.log('\nFacturación electrónica:');
+section('\nRuteo por calles y tráfico:');
+
+const routing = require('../src/routing');
+
+test('roadMatrix: fallback offline usa factor calle (> línea recta)', async () => {
+  const pts = [{ lat: -2.15, lng: -79.88 }, { lat: -2.10, lng: -79.90 }];
+  const m = await routing.roadMatrix(pts);
+  assert.strictEqual(m.source, 'haversine'); // ROUTING_DISABLE=1 en pruebas
+  const recta = haversineKm(pts[0], pts[1]);
+  assert.ok(m.dist[0][1] > recta, 'la distancia por calle supera la recta');
+  assert.ok(m.dur[0][1] > 0);
+});
+
+test('trafficMultiplier: hora pico pesa más que madrugada', () => {
+  routing.configure({ enabled: false });
+  assert.ok(routing.trafficMultiplier('08:00') > routing.trafficMultiplier('03:00'));
+  assert.ok(routing.trafficMultiplier('18:00') > routing.trafficMultiplier('11:00'));
+});
+
+test('optimize: reporta la fuente de ruteo en el summary', async () => {
+  const { summary } = await optimize({ depot: DEPOT, orders: ORDERS, vehicles: FLEET, options: {} });
+  assert.ok(['osrm', 'haversine'].includes(summary.routing));
+  assert.strictEqual(summary.routing, 'haversine'); // offline en pruebas
+});
+
+section('\nFacturación electrónica:');
 
 test('claveAcceso: 49 dígitos numéricos con verificador módulo 11', () => {
   const clave = claveAcceso({ date: new Date(), docType: '01', ruc: '0999999999001', serie: '005002', secuencial: 123 });
@@ -601,5 +636,7 @@ test('claveAcceso: 49 dígitos numéricos con verificador módulo 11', () => {
   assert.strictEqual(Number(clave[48]), mod11(clave.slice(0, 48)));
 });
 
-console.log(`\n${passed} pruebas OK, ${failed} fallidas\n`);
-process.exit(failed ? 1 : 0);
+chain.then(() => {
+  console.log(`\n${passed} pruebas OK, ${failed} fallidas\n`);
+  process.exit(failed ? 1 : 0);
+});
