@@ -1,0 +1,2183 @@
+{
+  "clients": [
+    {
+      "code": 15550,
+      "address": "VERGELES  SOLAR 50 MZ 109 A UNA CUADRA",
+      "reference": "DEL TUTI",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.0882497",
+      "lng": "-79.9040311",
+      "name": "FERRETERIA KATHERIN",
+      "client_name": "FERRETERIA KATHERIN",
+      "contact_name": "FERRETERIA KATHERIN",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040646-B87'#A'111838'TU3'1-B87",
+          "alt_code": "SO-26040646-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "PD944491",
+              "description": "TUBO PVC VENTILACION 50mmx3m CREMA S/N PLASTIDOR",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 19.14,
+              "units_3": 117750,
+              "custom_1": 7000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'094433'12.83'2-B87",
+          "alt_code": "SO-26040646-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4728",
+              "description": "CHOVA AL FRIO ALUMBAND ROLLO ALUMINIO 2MM 10CMX10M IMPTEK",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 12.972,
+              "units_3": 14424.36,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'094650'17.19'2-B87",
+          "alt_code": "SO-26040646-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4726",
+              "description": "CHOVA AL FRIO ALUMBAND ROLLO ALUMINIO 2MM 20CMX10M IMPTEK",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 15.772,
+              "units_3": 17097.3,
+              "custom_1": 2000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'095403'2.38'2-B87",
+          "alt_code": "SO-26040646-B87-5000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "E4200.03/27LCR",
+              "description": "LLAVE COCINA P/PARED  PICO BAR PLASTICA FIORI",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 1.32,
+              "units_3": 7680,
+              "custom_1": 5000
+            },
+            {
+              "code": "ENE300185/5",
+              "description": "PILA RELOJ 2032 X5 TIRA 3V CR2032 LITIO ENERGIZER",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.08,
+              "units_3": 3.3221,
+              "custom_1": 4000
+            },
+            {
+              "code": "ER4253",
+              "description": "CODO PVC LISO 1/2\"x90° IMP PN10",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 0.72,
+              "units_3": 375,
+              "custom_1": 10000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'095439'0.88'1-B87",
+          "alt_code": "SO-26040646-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N69957321895",
+              "description": "SILICONA ACETICA BLISTER 50GR TRANSPARENTE  TEKBOND",
+              "units": 12,
+              "units_1": 1,
+              "units_2": 0.78,
+              "units_3": 1890,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'100400'6.23'2-B87",
+          "alt_code": "SO-26040646-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "4735",
+              "description": "CEMENTO ASFALTICO 1KG IMPTEK",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 6.06,
+              "units_3": 7269.9,
+              "custom_1": 3000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040646-S1'100508'5.86'1-B87",
+          "alt_code": "SO-26040646-B87-9000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "5296/NE",
+              "description": "CINTA AISLANTE 3M 20YD NEGRO",
+              "units": 50,
+              "units_1": 1,
+              "units_2": 3.9,
+              "units_3": 4069.4,
+              "custom_1": 9000
+            },
+            {
+              "code": "5295/NE",
+              "description": "CINTA AISLANTE 3M 10YD NEGRO",
+              "units": 50,
+              "units_1": 1,
+              "units_2": 1.75,
+              "units_3": 2826,
+              "custom_1": 8000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 23014,
+      "address": "QUISQUELLA Y AV. CASUARINA SL7",
+      "reference": "MZ 4 KM.1 .5 VIA DAULE",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.1195",
+      "lng": "-79.948919",
+      "name": "TUBYTEK S.A.",
+      "client_name": "TUBYTEK S.A.",
+      "contact_name": "TUBYTEK S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26041111-M0'121151'5.07'9-B87",
+          "alt_code": "SO-26041111-B87-7100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "20548",
+              "description": "TEE PVC PRESION 32mm CC IMP PN10",
+              "units": 198,
+              "units_1": 1,
+              "units_2": 10.098,
+              "units_3": 36043.92,
+              "custom_1": 7100
+            },
+            {
+              "code": "20548",
+              "description": "TEE PVC PRESION 32mm CC IMP PN10",
+              "units": 594,
+              "units_1": 1,
+              "units_2": 30.294,
+              "units_3": 108131.76,
+              "custom_1": 7200
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'121519'6.43'1-B87",
+          "alt_code": "SO-26041111-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "14959",
+              "description": "ADAPTADOR HEMBRA PVC 50mmx 1 1/2\" LISO ROSCA IMP PN10",
+              "units": 72,
+              "units_1": 1,
+              "units_2": 5.976,
+              "units_3": 12208.32,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'121809'49.72'2-B87",
+          "alt_code": "SO-26041111-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "3577",
+              "description": "REDUCTOR PVC PRESION 110mm A 90mm CC IMP PN10",
+              "units": 90,
+              "units_1": 1,
+              "units_2": 48.87,
+              "units_3": 196875,
+              "custom_1": 3000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'122444'23.41'1-B87",
+          "alt_code": "SO-26041111-B87-1100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "14959",
+              "description": "ADAPTADOR HEMBRA PVC 50mmx 1 1/2\" LISO ROSCA IMP PN10",
+              "units": 8,
+              "units_1": 1,
+              "units_2": 0.664,
+              "units_3": 1356.48,
+              "custom_1": 1100
+            },
+            {
+              "code": "20548",
+              "description": "TEE PVC PRESION 32mm CC IMP PN10",
+              "units": 8,
+              "units_1": 1,
+              "units_2": 0.408,
+              "units_3": 1456.32,
+              "custom_1": 7300
+            },
+            {
+              "code": "35750",
+              "description": "REDUCTOR PVC PRESION 110mm A 50mm CC IMP",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 5.7,
+              "units_3": 37440,
+              "custom_1": 2000
+            },
+            {
+              "code": "3579",
+              "description": "REDUCTOR PVC PRESION 200mm A 110mm CC IMP PN10",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 15.2,
+              "units_3": 87386.2,
+              "custom_1": 4000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'122540'20.24'1-B87",
+          "alt_code": "SO-26041111-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "20471",
+              "description": "TEE PVC PRESION 250mm CC IMP",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 18.68,
+              "units_3": 117624,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'122747'5.82'1-B87",
+          "alt_code": "SO-26041111-B87-3100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "3577",
+              "description": "REDUCTOR PVC PRESION 110mm A 90mm CC IMP PN10",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 5.43,
+              "units_3": 21875,
+              "custom_1": 3100
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'122845'5.07'25-B87",
+          "alt_code": "SO-26041111-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "20548",
+              "description": "TEE PVC PRESION 32mm CC IMP PN10",
+              "units": 2183,
+              "units_1": 1,
+              "units_2": 111.333,
+              "units_3": 397393.32,
+              "custom_1": 7000
+            },
+            {
+              "code": "20548",
+              "description": "TEE PVC PRESION 32mm CC IMP PN10",
+              "units": 17,
+              "units_1": 1,
+              "units_2": 0.867,
+              "units_3": 3094.68,
+              "custom_1": 7400
+            }
+          ]
+        },
+        {
+          "code": "SO-26041111-M0'123140'5.92'2-B87",
+          "alt_code": "SO-26041111-B87-5000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925471",
+              "description": "POLIPEGA 200cc",
+              "units": 25,
+              "units_1": 1,
+              "units_2": 5.3,
+              "units_3": 6431.05,
+              "custom_1": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 23789,
+      "address": "AV QUITO S/N Y ORIENTE (ESQUINA)",
+      "reference": ".",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.2200449",
+      "lng": "-79.8993902",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040686-S2'163024'4.00'1-B87",
+          "alt_code": "SO-26040686-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90450-018",
+              "description": "CERRADURA POMO DORMITORIO DEVON CR SATINADO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.503,
+              "units_3": 6120,
+              "custom_1": 4000
+            },
+            {
+              "code": "FA-V1-175MFBI",
+              "description": "CERRADURA SOBREPONER 50mm IZQ CIL TRIP MONT FCIL B V1170MFBI",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 2.373,
+              "units_3": 4092,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040686-S2'163207'3.33'1-B87",
+          "alt_code": "SO-26040686-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90450-040",
+              "description": "CERRADURA MANIJA DORMITORIO CANNES 5 BR. ANTIGUO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.572,
+              "units_3": 4320,
+              "custom_1": 2000
+            },
+            {
+              "code": "FA-90450-042",
+              "description": "CERRADURA MANIJA DORMITORIO CANNES NIQ. SATNADO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.581,
+              "units_3": 5304,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040686-S2'163407'10.28'2-B87",
+          "alt_code": "SO-26040686-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-339",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES BEIGE",
+              "units": 8,
+              "units_1": 1,
+              "units_2": 7.16,
+              "units_3": 18950.4,
+              "custom_1": 7000
+            },
+            {
+              "code": "FA-91010-340",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES GRIS",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 2.688,
+              "units_3": 6804,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040686-S2'163532'1.68'1-B87",
+          "alt_code": "SO-26040686-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90430-016",
+              "description": "CERRADURA POMO BAÑO DEVON BR ANTIGUO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.422,
+              "units_3": 6844.5,
+              "custom_1": 3000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040809-S3'105158'4.59'1-B87",
+          "alt_code": "SO-26040809-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI756950",
+              "description": "SIKAFLEX 11FC PURFORM GRIS SELLADOR ADHESIVO PU",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 4.62,
+              "units_3": 4611.8,
+              "custom_1": 2000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040809-S3'105554'2.55'1-B87",
+          "alt_code": "SO-26040809-B87-22000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925315",
+              "description": "NEPLO FLEX 3/4\" PE RM/FLEX PG",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 0.51,
+              "units_3": 1446.912,
+              "custom_1": 22000
+            },
+            {
+              "code": "926285",
+              "description": "UNION FLEX 3/4\" PLASTIGAMA",
+              "units": 25,
+              "units_1": 1,
+              "units_2": 0.35,
+              "units_3": 664.75,
+              "custom_1": 21000
+            },
+            {
+              "code": "925620",
+              "description": "TEE FLEX 3/4\" PLASTIGAMA",
+              "units": 25,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 19000
+            },
+            {
+              "code": "925584",
+              "description": "TAPON MACHO POLIPROP ROSCABLE 3/4\" PLASTIGAMA",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 0.3,
+              "units_3": 543.3,
+              "custom_1": 16000
+            },
+            {
+              "code": "926808",
+              "description": "BUSHING PP ROSCABLE 1\" A 1/2\" PN10 PG",
+              "units": 25,
+              "units_1": 1,
+              "units_2": 0.4,
+              "units_3": 942,
+              "custom_1": 18000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 123697,
+      "address": "URB. GIRASOL MZ 100 SOLAR 13-2",
+      "reference": "A 500M DE LA POLICIA JUDICIAL",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.19221",
+      "lng": "-79.94046",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040598-B87'#A'083915'TU3'1-B87",
+          "alt_code": "SO-26040598-B87-27000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926549",
+              "description": "TUBO PVC CONDUIT 1\" 3m PESADO PLASTIGAMA",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 3.205,
+              "units_3": 7596.75,
+              "custom_1": 27000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-B87'#A'083916'TU3'1-B87",
+          "alt_code": "SO-26040598-B87-35000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926551",
+              "description": "TUBO PVC CONDUIT 3/4\" 3m PESADO PLASTIGAMA",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 8.2,
+              "units_3": 17092.8,
+              "custom_1": 35000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-B87'#A'102607'PAL'1-B87",
+          "alt_code": "SO-26040598-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI106568",
+              "description": "SIKATOP EMPASTE EXTERIOR 20kg BLANCO  C/RESINA TC/04M(5%)",
+              "units": 6,
+              "units_1": 1,
+              "units_2": 120,
+              "units_3": 86688,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-B87'#A'102610'PAL'1-B87",
+          "alt_code": "SO-26040598-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI181907",
+              "description": "SIKA EMPASTE PROFESIONAL BLANCO 20kg TC/6M (5%)",
+              "units": 45,
+              "units_1": 1,
+              "units_2": 900,
+              "units_3": 650160,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'085936'4.88'1-B87",
+          "alt_code": "SO-26040598-B87-9000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252843680",
+              "description": "DISCO CORTE ACERO INOX BNA12 4 1/2\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 1.29,
+              "units_3": 1245.6,
+              "custom_1": 9000
+            },
+            {
+              "code": "N66252842857",
+              "description": "DISCO DESBASTE METAL BDA640 4 1/2\"x1/4\"x7/8\" NORTON",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 3.42,
+              "units_3": 1318.46,
+              "custom_1": 8000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'090047'6.51'4-B87",
+          "alt_code": "SO-26040598-B87-10000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252842900",
+              "description": "DISCO CORTE METAL BNA32 14\"x7/64\"x1\" PLANO NORTON",
+              "units": 40,
+              "units_1": 1,
+              "units_2": 23.44,
+              "units_3": 11080.08,
+              "custom_1": 10000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'090913'5.95'1-B87",
+          "alt_code": "SO-26040598-B87-22000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI443772",
+              "description": "SIKAFLEX 1A PLUS PURFORM BLANCO 300ML TC/12M",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 0.443,
+              "units_3": 461.18,
+              "custom_1": 22000
+            },
+            {
+              "code": "N5539503248",
+              "description": "LIJA HIERRO K246 #60 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.5,
+              "units_3": 1237.5,
+              "custom_1": 21000
+            },
+            {
+              "code": "N69957326453",
+              "description": "ADHESIVO CIANO 725 INDUSTRIAL BLISTER (20GR)",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.076,
+              "units_3": 161,
+              "custom_1": 19000
+            },
+            {
+              "code": "N69957321902",
+              "description": "SILICONA ACETICA 280G GRIS TEKBOND",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 1.7,
+              "units_3": 2227.5,
+              "custom_1": 18000
+            },
+            {
+              "code": "N69957321900",
+              "description": "SILICONA ACETICA 280G BLANCO TEKBOND",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.688,
+              "units_3": 1807.84,
+              "custom_1": 17000
+            },
+            {
+              "code": "N69957321897",
+              "description": "SILICONA ACETICA 280G TRANSPARENTE TEKBOND",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.68,
+              "units_3": 2075.34,
+              "custom_1": 16000
+            },
+            {
+              "code": "N69957316293",
+              "description": "DISCO FLAP DESBASTE R801 #80 CLASSIC 115x22 P/ACERO NORTO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 6.24,
+              "units_3": 7267.13,
+              "custom_1": 15000
+            },
+            {
+              "code": "6410",
+              "description": "SEGUETA PARA ARCO SIERRA #18 SANDFLEX",
+              "units": 8,
+              "units_1": 1,
+              "units_2": 1.424,
+              "units_3": 378,
+              "custom_1": 3000
+            },
+            {
+              "code": "N78072708182",
+              "description": "ANILLO DE CERA TEKBOND",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.6,
+              "units_3": 2281.5,
+              "custom_1": 2000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'091122'3.32'1-B87",
+          "alt_code": "SO-26040598-B87-25000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "924845E",
+              "description": "CODO PVC CONDUIT 1\"x90° PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.09,
+              "units_3": 1336.5,
+              "custom_1": 25000
+            },
+            {
+              "code": "SI529788",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA POLIURETANO 300ML TC/12M",
+              "units": 8,
+              "units_1": 1,
+              "units_2": 2.976,
+              "units_3": 4521.6,
+              "custom_1": 20000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'091305'10.00'4-B87",
+          "alt_code": "SO-26040598-B87-5000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI747735",
+              "description": "SIKA PLASTOCRETE 161 HE 10KG EXPERTO ADITIVO P/HORMIGON",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 40,
+              "units_3": 49612,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'091446'4.00'5-B87",
+          "alt_code": "SO-26040598-B87-13000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI815654",
+              "description": "SIKAFILL-5 EXPERTO  BLANCO 3538 ml",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 22.5,
+              "units_3": 44.1,
+              "custom_1": 13000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'091739'0.20'3-B87",
+          "alt_code": "SO-26040598-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI747658",
+              "description": "SIKA PLASTOCRETE 161 HE 4KG EXPERTO ADITIVO P/HORMIGON",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 80,
+              "units_3": 121380,
+              "custom_1": 7000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'093439'6.27'1-B87",
+          "alt_code": "SO-26040598-B87-14000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252846280",
+              "description": "DISCO MULTICORTE 4 1/2x3/64x7/8 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.23,
+              "units_3": 1322.5,
+              "custom_1": 14000
+            },
+            {
+              "code": "962433E",
+              "description": "CODO PVC CONDUIT 1/2\"x90° TERMOF. PLASTIGAMA",
+              "units": 65,
+              "units_1": 1,
+              "units_2": 0.845,
+              "units_3": 13650,
+              "custom_1": 26000
+            },
+            {
+              "code": "925843",
+              "description": "TEE PVC DESAGUE 160mm CC PLASTIGAMA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 1.934,
+              "units_3": 22075.2,
+              "custom_1": 37000
+            },
+            {
+              "code": "925009",
+              "description": "CODO PVC DESAGUE 160mmx45° EC PLASTIGAMA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.91,
+              "units_3": 9305.44,
+              "custom_1": 36000
+            },
+            {
+              "code": "924308",
+              "description": "TAPA PVC IZQ.INT. P/ACCESORIO D/CANAL P/AGUA LLUVIA PG",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.268,
+              "units_3": 2856,
+              "custom_1": 34000
+            },
+            {
+              "code": "925016",
+              "description": "CODO PVC DESAGUE 75mmx45° EC PLASTIGAMA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.25,
+              "units_3": 1728,
+              "custom_1": 33000
+            },
+            {
+              "code": "924305",
+              "description": "TAPA PVC DERECHA EXTERNA CANAL DECORATIVO P/AGUA LLUVIA PG",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.326,
+              "units_3": 3060,
+              "custom_1": 32000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-M0'093501'0.05'5-B87",
+          "alt_code": "SO-26040598-B87-12000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "TRA93420/500",
+              "description": "FREGADERO 80X50 1P/1E IZQUIERDO AI430 SOB C/D TRA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 5.646,
+              "units_3": 10200,
+              "custom_1": 12000
+            },
+            {
+              "code": "TRA93410/500",
+              "description": "FREGADERO 80X50 1P/1E DERECHO AI430 SOB C/D TRA",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 2.66,
+              "units_3": 16000,
+              "custom_1": 11000
+            },
+            {
+              "code": "TRA94081/500",
+              "description": "FREGADERO 40X34 1P REVERSIBLE AI430 EMP C/D TRA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 2.078,
+              "units_3": 108859.86,
+              "custom_1": 4000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040598-S1'084747'0.81'1-B87",
+          "alt_code": "SO-26040598-B87-24000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925365",
+              "description": "REJILLA PVC DESAGUE 50mm PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.099,
+              "units_3": 220.5,
+              "custom_1": 24000
+            },
+            {
+              "code": "925364",
+              "description": "REJILLA PVC DESAGUE 110mm PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.273,
+              "units_3": 552,
+              "custom_1": 23000
+            },
+            {
+              "code": "926327",
+              "description": "UNION POLIPROP ROSCABLE 3/4\" PLASTIGAMA IMP",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.038,
+              "units_3": 100.48,
+              "custom_1": 31000
+            },
+            {
+              "code": "925675",
+              "description": "TEE POLIPROP ROSCABLE 3/4\" PLASTIGAMA",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.18,
+              "units_3": 572,
+              "custom_1": 29000
+            },
+            {
+              "code": "925349",
+              "description": "NEPLO ROSCABLE PP 1/2\"x10cm PLASTIGAMA (RM/RM) PN10",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.044,
+              "units_3": 62.8,
+              "custom_1": 28000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040687-Q3'162110'4.29'1-B87",
+          "alt_code": "SO-26040687-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90430-016",
+              "description": "CERRADURA POMO BAÑO DEVON BR ANTIGUO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.422,
+              "units_3": 6844.5,
+              "custom_1": 1000
+            },
+            {
+              "code": "FA-91010-339",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES BEIGE",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 2.685,
+              "units_3": 7106.4,
+              "custom_1": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 123910,
+      "address": "CALLE 12AVA #10 ENTRE PORTETE Y",
+      "reference": "VENEZUELA",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.202982",
+      "lng": "-79.912222",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040608-B87'#A'084221'TU6'1-B87",
+          "alt_code": "SO-26040608-B87-22000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926094",
+              "description": "TUBO PRESION PVC ROSCABLE 3/4\"x6m PLASTIGAMA",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 24.85,
+              "units_3": 17092.7078,
+              "custom_1": 22000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040608-B87'#A'102613'PAL'1-B87",
+          "alt_code": "SO-26040608-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI181907",
+              "description": "SIKA EMPASTE PROFESIONAL BLANCO 20kg TC/6M (5%)",
+              "units": 40,
+              "units_1": 1,
+              "units_2": 800,
+              "units_3": 577920,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040608-Q1'111355'54.00'2-B87",
+          "alt_code": "SO-26040608-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI747658",
+              "description": "SIKA PLASTOCRETE 161 HE 4KG EXPERTO ADITIVO P/HORMIGON",
+              "units": 12,
+              "units_1": 1,
+              "units_2": 48,
+              "units_3": 72828,
+              "custom_1": 4000
+            },
+            {
+              "code": "SI106288",
+              "description": "SIKA PLASTOCRETE DM 2kg IMPERMEABILIZANTE HORMIGON",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 6,
+              "units_3": 6240.75,
+              "custom_1": 3000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040608-Q1'111624'3.09'1-B87",
+          "alt_code": "SO-26040608-B87-5100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "52850",
+              "description": "CAJA PVC RECTANGULAR 4\"X2\" ELECTROCABLE",
+              "units": 48,
+              "units_1": 1,
+              "units_2": 2.736,
+              "units_3": 14343.168,
+              "custom_1": 5100
+            }
+          ]
+        },
+        {
+          "code": "SO-26040608-Q2'110814'21.67'1-B87",
+          "alt_code": "SO-26040608-B87-8000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252843688",
+              "description": "DISCO CORTE ACERO INOX BNA12 7\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 80,
+              "units_1": 1,
+              "units_2": 8.08,
+              "units_3": 10173.6,
+              "custom_1": 8000
+            },
+            {
+              "code": "N66252843680",
+              "description": "DISCO CORTE ACERO INOX BNA12 4 1/2\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 60,
+              "units_1": 1,
+              "units_2": 2.58,
+              "units_3": 2491.2,
+              "custom_1": 7000
+            },
+            {
+              "code": "N66252842859",
+              "description": "DISCO DESBASTE METAL BDA640 7\"x1/4\"x7/8\" NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 4.46,
+              "units_3": 2543.4,
+              "custom_1": 6000
+            },
+            {
+              "code": "52850",
+              "description": "CAJA PVC RECTANGULAR 4\"X2\" ELECTROCABLE",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.114,
+              "units_3": 597.632,
+              "custom_1": 5000
+            },
+            {
+              "code": "925590",
+              "description": "TAPON MACHO PVC DESAGUE 110mm PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.315,
+              "units_3": 552,
+              "custom_1": 26000
+            },
+            {
+              "code": "925835",
+              "description": "TEE REDUCTORA PVC DESAGUE 75mm A 50mm 2PZAS CC PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.51,
+              "units_3": 5022,
+              "custom_1": 25000
+            },
+            {
+              "code": "926806",
+              "description": "UNION UNIVERSAL POLIPROP ROSC 3/4\" PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.159,
+              "units_3": 643.5,
+              "custom_1": 24000
+            },
+            {
+              "code": "926327",
+              "description": "UNION POLIPROP ROSCABLE 3/4\" PLASTIGAMA IMP",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.057,
+              "units_3": 150.72,
+              "custom_1": 23000
+            },
+            {
+              "code": "925349",
+              "description": "NEPLO ROSCABLE PP 1/2\"x10cm PLASTIGAMA (RM/RM) PN10",
+              "units": 15,
+              "units_1": 1,
+              "units_2": 0.33,
+              "units_3": 471,
+              "custom_1": 21000
+            },
+            {
+              "code": "6410",
+              "description": "SEGUETA PARA ARCO SIERRA #18 SANDFLEX",
+              "units": 17,
+              "units_1": 1,
+              "units_2": 3.026,
+              "units_3": 803.25,
+              "custom_1": 2000
+            },
+            {
+              "code": "926395",
+              "description": "UNION PVC DESAGUE 75mm CC PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.204,
+              "units_3": 1311.264,
+              "custom_1": 20000
+            },
+            {
+              "code": "925364",
+              "description": "REJILLA PVC DESAGUE 110mm PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.273,
+              "units_3": 552,
+              "custom_1": 19000
+            },
+            {
+              "code": "925578",
+              "description": "TAPON HEMBRA POLIPROP ROSC 3/4\" PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.036,
+              "units_3": 72.12,
+              "custom_1": 18000
+            },
+            {
+              "code": "924743",
+              "description": "BUSHING PP ROSCABLE 3/4\" A 1/2\" PN10 PG",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.021,
+              "units_3": 75.0068,
+              "custom_1": 17000
+            },
+            {
+              "code": "SI443773",
+              "description": "SIKAFLEX 1A PLUS  GRIS 300ml 12/M",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.98,
+              "units_3": 922.36,
+              "custom_1": 16000
+            },
+            {
+              "code": "N69957321900",
+              "description": "SILICONA ACETICA 280G BLANCO TEKBOND",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.688,
+              "units_3": 1807.84,
+              "custom_1": 15000
+            },
+            {
+              "code": "N5539541826",
+              "description": "LIJA AGUA T277 GR #220 230X280 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.16,
+              "units_3": 644,
+              "custom_1": 14000
+            },
+            {
+              "code": "N5539541825",
+              "description": "LIJA AGUA T277 GR #180 230X280 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.18,
+              "units_3": 644,
+              "custom_1": 13000
+            },
+            {
+              "code": "N5539541824",
+              "description": "LIJA AGUA T277 GR #150 230X280 NORTON",
+              "units": 26,
+              "units_1": 1,
+              "units_2": 0.494,
+              "units_3": 1674.4,
+              "custom_1": 12000
+            },
+            {
+              "code": "N5539541823",
+              "description": "LIJA AGUA T277 GR #120 230X280 NORTON",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 0.38,
+              "units_3": 1260,
+              "custom_1": 11000
+            },
+            {
+              "code": "N69957316292",
+              "description": "DISCO FLAP DESBASTE R801 #60 CLASSIC 115x22 P/ACERO NORTO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 6.4,
+              "units_3": 8305.3,
+              "custom_1": 10000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040608-Q2'111033'5.03'3-B87",
+          "alt_code": "SO-26040608-B87-9000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI562786",
+              "description": "SIKA SELLADOR 5kg TC/10M",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 15,
+              "units_3": 19298.91,
+              "custom_1": 9000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 327873,
+      "address": "ALCEDO 602 Y PEDRO MONCAYO",
+      "reference": "",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.1958504",
+      "lng": "-79.890616",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040602-B87'#A'083956'TU6'1-B87",
+          "alt_code": "SO-26040602-B87-22000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926094",
+              "description": "TUBO PRESION PVC ROSCABLE 3/4\"x6m PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 7.455,
+              "units_3": 5127.8123,
+              "custom_1": 22000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-B87'#A'102612'PAL'1-B87",
+          "alt_code": "SO-26040602-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI181907",
+              "description": "SIKA EMPASTE PROFESIONAL BLANCO 20kg TC/6M (5%)",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 200,
+              "units_3": 144480,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-R1'092003'10.00'2-B87",
+          "alt_code": "SO-26040602-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI747735",
+              "description": "SIKA PLASTOCRETE 161 HE 10KG EXPERTO ADITIVO P/HORMIGON",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 20,
+              "units_3": 24806,
+              "custom_1": 6000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-R1'093229'15.72'1-B87",
+          "alt_code": "SO-26040602-B87-11000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252843688",
+              "description": "DISCO CORTE ACERO INOX BNA12 7\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 150,
+              "units_1": 1,
+              "units_2": 15.15,
+              "units_3": 19075.5,
+              "custom_1": 11000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-R1'093327'15.37'1-B87",
+          "alt_code": "SO-26040602-B87-20000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925421",
+              "description": "SIFON PVC DESAGUE 50mm PLASTIGAMA *",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.346,
+              "units_3": 1955,
+              "custom_1": 20000
+            },
+            {
+              "code": "925463",
+              "description": "KALIPEGA 125cc",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.372,
+              "units_3": 413.9148,
+              "custom_1": 19000
+            },
+            {
+              "code": "925015",
+              "description": "CODO PVC DESAGUE 50mmx45° EC PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.186,
+              "units_3": 1080,
+              "custom_1": 18000
+            },
+            {
+              "code": "SI529788",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA POLIURETANO 300ML TC/12M",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.744,
+              "units_3": 1130.4,
+              "custom_1": 17000
+            },
+            {
+              "code": "N5539541823",
+              "description": "LIJA AGUA T277 GR #120 230X280 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.19,
+              "units_3": 630,
+              "custom_1": 16000
+            },
+            {
+              "code": "N77696083975",
+              "description": "LIJA HIERRO K246 #30 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.66,
+              "units_3": 618.75,
+              "custom_1": 15000
+            },
+            {
+              "code": "N69957316293",
+              "description": "DISCO FLAP DESBASTE R801 #80 CLASSIC 115x22 P/ACERO NORTO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 6.24,
+              "units_3": 7267.13,
+              "custom_1": 14000
+            },
+            {
+              "code": "N70184647065",
+              "description": "DISCO CORTE DIAMANTE 4\" 110MM SEGM CLASSIC 7/8\"X2.4MM NO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 1.05,
+              "units_3": 3.454,
+              "custom_1": 13000
+            },
+            {
+              "code": "N66252846280",
+              "description": "DISCO MULTICORTE 4 1/2x3/64x7/8 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.23,
+              "units_3": 1322.5,
+              "custom_1": 12000
+            },
+            {
+              "code": "N66252842857",
+              "description": "DISCO DESBASTE METAL BDA640 4 1/2\"x1/4\"x7/8\" NORTON",
+              "units": 20,
+              "units_1": 1,
+              "units_2": 3.42,
+              "units_3": 1318.46,
+              "custom_1": 9000
+            },
+            {
+              "code": "SI644658",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA DE POLIURETANO 750ML 1/AÑO",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 0.857,
+              "units_3": 1127.65,
+              "custom_1": 8000
+            },
+            {
+              "code": "SI106288",
+              "description": "SIKA PLASTOCRETE DM 2kg IMPERMEABILIZANTE HORMIGON",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 2,
+              "units_3": 2080.25,
+              "custom_1": 5000
+            },
+            {
+              "code": "SI747760",
+              "description": "SIKA PLASTOCRETE 161 HE 2KG EXPERTO ADITIVO P/HORMIGON",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 2,
+              "units_3": 6238.78,
+              "custom_1": 4000
+            },
+            {
+              "code": "SI718354",
+              "description": "SIKATOP 77 1KG EXPERTO P/MORTEROS TC/6M",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 1,
+              "units_3": 1080.16,
+              "custom_1": 3000
+            },
+            {
+              "code": "6410",
+              "description": "SEGUETA PARA ARCO SIERRA #18 SANDFLEX",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.534,
+              "units_3": 141.75,
+              "custom_1": 2000
+            },
+            {
+              "code": "925016",
+              "description": "CODO PVC DESAGUE 75mmx45° EC PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.375,
+              "units_3": 2592,
+              "custom_1": 23000
+            },
+            {
+              "code": "924863",
+              "description": "CODO POLIP. ROSC. 3/4\" x90° PLASTIGAMA",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 0.14,
+              "units_3": 550,
+              "custom_1": 21000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-R1'093531'12.85'1-B87",
+          "alt_code": "SO-26040602-B87-10000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252843680",
+              "description": "DISCO CORTE ACERO INOX BNA12 4 1/2\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 300,
+              "units_1": 1,
+              "units_2": 12.9,
+              "units_3": 12456,
+              "custom_1": 10000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040602-R1'093557'4.00'3-B87",
+          "alt_code": "SO-26040602-B87-7000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "SI427180",
+              "description": "SIKA PLASTOCRETE DM 4kg IMPERMEABILIZANTE HORMIGON",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 12,
+              "units_3": 18207,
+              "custom_1": 7000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040688-Q3'162534'1.67'1-B87",
+          "alt_code": "SO-26040688-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-V1-175NBD",
+              "description": "CERRADURA SOBREPONER 50mm DER CILINDRO TRIPLE BEIGE BLIS.",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 1.504,
+              "units_3": 6555,
+              "custom_1": 1000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 327885,
+      "address": "AV. RAUL CLEMENTE HUERTA, FRENTE A LA",
+      "reference": "IGLESIA LA DOLOROSA",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.2607412",
+      "lng": "-79.8796803",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040689-Q3'163448'3.25'1-B87",
+          "alt_code": "SO-26040689-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90450-006",
+              "description": "CERRADURA POMO DORMITORIO BOLT AC INOX FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.581,
+              "units_3": 7084.35,
+              "custom_1": 2000
+            },
+            {
+              "code": "FA-90450-004",
+              "description": "CERRADURA POMO DORMITORIO BOLTON BR. ANTIGUO FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.533,
+              "units_3": 6654.375,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040689-Q3'163543'4.64'1-B87",
+          "alt_code": "SO-26040689-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-339",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES BEIGE",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 4.475,
+              "units_3": 11844,
+              "custom_1": 4000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040689-Q3'163710'3.70'1-B87",
+          "alt_code": "SO-26040689-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-340",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES GRIS",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 3.584,
+              "units_3": 9072,
+              "custom_1": 3000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 327917,
+      "address": "AV. PERIMETRAL Y AV. 29, DIAGONAL A TIA",
+      "reference": "COP. LOS ANGELS 1 ISLA TRINITARIA 48 S.O",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.2390297",
+      "lng": "-79.9253867",
+      "name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "client_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "contact_name": "COMISARIATO DEL CONSTRUCTOR S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040605-B87'#A'084140'TU6'1-B87",
+          "alt_code": "SO-26040605-B87-13000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926094",
+              "description": "TUBO PRESION PVC ROSCABLE 3/4\"x6m PLASTIGAMA",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 9.94,
+              "units_3": 6837.0831,
+              "custom_1": 13000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040605-PASILLO PALET-B87",
+          "alt_code": "SO-26040605-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "52850",
+              "description": "CAJA PVC RECTANGULAR 4\"X2\" ELECTROCABLE",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.228,
+              "units_3": 1195.264,
+              "custom_1": 2000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040605-S1'103423'9.32'1-B87",
+          "alt_code": "SO-26040605-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252843680",
+              "description": "DISCO CORTE ACERO INOX BNA12 4 1/2\"x1/16\"x7/8\" PLANO NORTON",
+              "units": 70,
+              "units_1": 1,
+              "units_2": 3.01,
+              "units_3": 2906.4,
+              "custom_1": 4000
+            },
+            {
+              "code": "N69957316294",
+              "description": "DISCO FLAP DESBASTE R801 #120 CLASSIC 115x22 P/ACERO NORTO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 6.3,
+              "units_3": 7267.5,
+              "custom_1": 8000
+            },
+            {
+              "code": "SI644658",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA DE POLIURETANO 750ML 1/AÑO",
+              "units": 5,
+              "units_1": 1,
+              "units_2": 4.285,
+              "units_3": 5638.25,
+              "custom_1": 3000
+            },
+            {
+              "code": "6410",
+              "description": "SEGUETA PARA ARCO SIERRA #18 SANDFLEX",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.534,
+              "units_3": 141.75,
+              "custom_1": 1000
+            },
+            {
+              "code": "SI529788",
+              "description": "SIKA BOOM M ESPUMA EXPANSIVA POLIURETANO 300ML TC/12M",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0.744,
+              "units_3": 1130.4,
+              "custom_1": 11000
+            },
+            {
+              "code": "N5539541822",
+              "description": "LIJA AGUA T277 GR #100 230X280 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.21,
+              "units_3": 644,
+              "custom_1": 10000
+            },
+            {
+              "code": "N5539503256",
+              "description": "LIJA HIERRO K246 #150 NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.37,
+              "units_3": 1237.5,
+              "custom_1": 9000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040605-S1'103832'6.06'1-B87",
+          "alt_code": "SO-26040605-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "N66252926955",
+              "description": "DISCO CORTE ACERO INOX BNA22 9\"x5/64x7/8\" PLANO NORTON",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 2.07,
+              "units_3": 830.53,
+              "custom_1": 6000
+            },
+            {
+              "code": "N70184647065",
+              "description": "DISCO CORTE DIAMANTE 4\" 110MM SEGM CLASSIC 7/8\"X2.4MM NO",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 1.05,
+              "units_3": 3.454,
+              "custom_1": 7000
+            },
+            {
+              "code": "962433",
+              "description": "CODO PVC CONDUIT 1/2\"x90° INYECTADO PLASTIGAMA",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0.1,
+              "units_3": 325.552,
+              "custom_1": 16000
+            },
+            {
+              "code": "925558",
+              "description": "TAPON HEMBRA PVC DESAGUE 50mm PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.087,
+              "units_3": 191.28,
+              "custom_1": 15000
+            },
+            {
+              "code": "925016",
+              "description": "CODO PVC DESAGUE 75mmx45° EC PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0.375,
+              "units_3": 2592,
+              "custom_1": 14000
+            },
+            {
+              "code": "925850",
+              "description": "TEE PVC DESAGUE 110mm CC PLASTIGAMA *",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.203,
+              "units_3": 1207.5,
+              "custom_1": 12000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040605-S1'104026'5.20'1-B87",
+          "alt_code": "SO-26040605-B87-5000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "TRA93410/500",
+              "description": "FREGADERO 80X50 1P/1E DERECHO AI430 SOB C/D TRA",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 5.32,
+              "units_3": 32000,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040605-S1'104144'6.18'1-B87",
+          "alt_code": "SO-26040605-B87-2100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "52850",
+              "description": "CAJA PVC RECTANGULAR 4\"X2\" ELECTROCABLE",
+              "units": 96,
+              "units_1": 1,
+              "units_2": 5.472,
+              "units_3": 28686.336,
+              "custom_1": 2100
+            }
+          ]
+        },
+        {
+          "code": "SO-26040690-V2'164517'4.59'1-B87",
+          "alt_code": "SO-26040690-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-90470-001",
+              "description": "CERROJO CILINDRO SENCILLO BR. ANTIGUO FANAL 90470-001",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.305,
+              "units_3": 3363.75,
+              "custom_1": 3000
+            },
+            {
+              "code": "FA-V1-175NBD",
+              "description": "CERRADURA SOBREPONER 50mm DER CILINDRO TRIPLE BEIGE BLIS.",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 1.504,
+              "units_3": 6555,
+              "custom_1": 2000
+            },
+            {
+              "code": "FA-90450-006",
+              "description": "CERRADURA POMO DORMITORIO BOLT AC INOX FANAL",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 1.581,
+              "units_3": 7084.35,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040690-V2'164623'2.81'1-B87",
+          "alt_code": "SO-26040690-B87-5000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-339",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES BEIGE",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 2.685,
+              "units_3": 7106.4,
+              "custom_1": 5000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040690-V2'164703'5.52'5-B87",
+          "alt_code": "SO-26040690-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-340",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES GRIS",
+              "units": 30,
+              "units_1": 1,
+              "units_2": 26.88,
+              "units_3": 68040,
+              "custom_1": 4000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040690-V2'164719'5.52'2-B87",
+          "alt_code": "SO-26040690-B87-5100",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "FA-91010-339",
+              "description": "CERRADURA SOBREPONER DER 50mm 5PINES BEIGE",
+              "units": 12,
+              "units_1": 1,
+              "units_2": 10.74,
+              "units_3": 28425.6,
+              "custom_1": 5100
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 334202,
+      "address": "GUAYAS / GUAYAQUIL / TARQUI",
+      "reference": "VIA A DAULE S/N Y PASCUALES",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.0678895",
+      "lng": "-79.942875",
+      "name": "EXPORTACIONES DUREXPORTA S.A",
+      "client_name": "EXPORTACIONES DUREXPORTA S.A",
+      "contact_name": "EXPORTACIONES DUREXPORTA S.A",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040909-R2'105430'0.60'1-B87",
+          "alt_code": "SO-26040909-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "AGE.EJE1.001",
+              "description": "AGENDA EJECUTIVA TIPO CUERO 21X14.5CM CON BOLIGRAFO METAL",
+              "units": 2,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 2000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040909-R2'110127'0.62'1-B87",
+          "alt_code": "SO-26040909-B87-3000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "PUB-PG0008",
+              "description": "CAMISETA ALGODON BL ESTAMPADA PLASTIGAMA",
+              "units": 3,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 3000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 1319383,
+      "address": "AV. ISIDRO AYORA SAUCES I MZ 36 SL 14",
+      "reference": "TARQUI / GUAYAQUIL / GUAYAS",
+      "city": "GUAYAQUIL",
+      "country": "Ecuador",
+      "lat": "-2.1407937",
+      "lng": "-79.8902433",
+      "name": "CITYCETTY S.A.",
+      "client_name": "CITYCETTY S.A.",
+      "contact_name": "CITYCETTY S.A.",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26041365-B87'#A'165401'TU3'1-B87",
+          "alt_code": "SO-26041365-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926217",
+              "description": "TUBO PVC DESAGUE 110mmx3m TB PLASTIGAMA",
+              "units": 18,
+              "units_1": 1,
+              "units_2": 63.594,
+              "units_3": 512919,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041365-B87'#A'165402'TU3'1-B87",
+          "alt_code": "SO-26041365-B87-4000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "926225",
+              "description": "TUBO PVC DESAGUE 75mmx3m TB PLASTIGAMA",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 22.48,
+              "units_3": 132468.75,
+              "custom_1": 4000
+            }
+          ]
+        },
+        {
+          "code": "SO-26041365-R2'083304'8.88'1-B87",
+          "alt_code": "SO-26041365-B87-6000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "925016",
+              "description": "CODO PVC DESAGUE 75mmx45° EC PLASTIGAMA",
+              "units": 15,
+              "units_1": 1,
+              "units_2": 1.875,
+              "units_3": 12960,
+              "custom_1": 6000
+            },
+            {
+              "code": "925029",
+              "description": "CODO PVC DESAGUE 75mmx90° EC PLASTIGAMA",
+              "units": 18,
+              "units_1": 1,
+              "units_2": 3.276,
+              "units_3": 17556.75,
+              "custom_1": 5000
+            },
+            {
+              "code": "926483",
+              "description": "YEE PVC DESAGUE 50mm EC PLASTIGAMA *",
+              "units": 12,
+              "units_1": 1,
+              "units_2": 1.716,
+              "units_3": 9660,
+              "custom_1": 3000
+            },
+            {
+              "code": "925848",
+              "description": "TEE PVC DESAGUE 50mm CC PLASTIGAMA",
+              "units": 10,
+              "units_1": 1,
+              "units_2": 0.99,
+              "units_3": 6750,
+              "custom_1": 2000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": 1621103,
+      "address": "URB LA CORALIA SOLAR 15 Y MZ 3",
+      "reference": "LA PUNTILLA (SATELITE) / SAMBORONDON",
+      "city": "SAMBORONDON",
+      "country": "Ecuador",
+      "lat": "-2.0749974",
+      "lng": "-79.8505293",
+      "name": "FISCHER CARPIO MARTHA KATIUSKA",
+      "client_name": "FISCHER CARPIO MARTHA KATIUSKA",
+      "contact_name": "FISCHER CARPIO MARTHA KATIUSKA",
+      "time_windows": [
+        {
+          "start": "09:00",
+          "end": "11:00"
+        }
+      ],
+      "tags": [],
+      "orders": [
+        {
+          "code": "SO-26040877-R3'104657'14.25'2-B87",
+          "alt_code": "SO-26040877-B87-1000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "157983",
+              "description": "CHEQUE VERTICAL U HORIZONTAL PVC 110mm COMP IMP PN10",
+              "units": 4,
+              "units_1": 1,
+              "units_2": 0,
+              "units_3": 0,
+              "custom_1": 1000
+            }
+          ]
+        },
+        {
+          "code": "SO-26040877-R3'104821'1.88'1-B87",
+          "alt_code": "SO-26040877-B87-2000",
+          "description": "Venta",
+          "items": [
+            {
+              "code": "16487",
+              "description": "CODO PVC PRESION 160mmx45° EC IMP PN10",
+              "units": 1,
+              "units_1": 1,
+              "units_2": 1.855,
+              "units_3": 13311,
+              "custom_1": 2000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

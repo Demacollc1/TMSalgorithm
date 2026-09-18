@@ -1,0 +1,7 @@
+tipo,cantidad,tamano_caja,base_pallet,peso_kg,apilable,diametro_mm,largo_m,largo_cm,ancho_cm,alto_cm
+correspondencia,3,,,,,,,,,
+caja,5,A4,,,,,,,,
+caja,2,A1,,120,,,,,,
+pallet,1,,1.20x0.80,600,no,,,,,
+tuberia,20,,,,,50,6,,,
+volumetrico,1,,,,no,,,180,90,120

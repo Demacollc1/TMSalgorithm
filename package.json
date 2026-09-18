@@ -1,0 +1,15 @@
+{
+  "name": "macotrans-tms",
+  "version": "1.0.0",
+  "description": "Macotrans — TMS de última milla: optimización de rutas con madre nodriza y recolecciones, gestión de flota, monitoreo y prueba de entrega",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/run-tests.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

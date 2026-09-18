@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macotrans TMS — Gestión de última milla</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="topbar">
+    <button id="nav-toggle" class="nav-toggle" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-brand"><b>MACO</b>TRANS · TMS</div>
+  </div>
+  <div id="nav-backdrop" class="nav-backdrop"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-icon">🚚</span>
+      <div>
+        <div class="brand-name"><b>MACO</b>TRANS</div>
+        <div class="brand-sub">TMS última milla</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#/panel" data-view="panel" class="nav-item active"><span>📊</span> Panel</a>
+      <a href="#/pedidos" data-view="pedidos" class="nav-item"><span>📦</span> Pedidos</a>
+      <a href="#/flota" data-view="flota" class="nav-item"><span>🚛</span> Flota</a>
+      <a href="#/direcciones" data-view="direcciones" class="nav-item"><span>📍</span> Direcciones</a>
+      <a href="#/planificacion" data-view="planificacion" class="nav-item"><span>🗺️</span> Planificación</a>
+      <a href="#/carga" data-view="carga" class="nav-item"><span>📦</span> Carga</a>
+      <a href="#/monitoreo" data-view="monitoreo" class="nav-item"><span>📡</span> Monitoreo</a>
+      <a href="#/casos" data-view="casos" class="nav-item"><span>🤖</span> Casos &amp; IA</a>
+      <a href="#/empresas" data-view="empresas" class="nav-item"><span>🏢</span> Empresas</a>
+      <a href="/conductor" target="_blank" class="nav-item"><span>📱</span> App conductor</a>
+      <a href="/cabina" target="_blank" class="nav-item"><span>🛰️</span> Pantalla cabina</a>
+      <a href="#/webhooks" data-view="webhooks" class="nav-item"><span>🔗</span> Integraciones</a>
+      <a href="/portal" target="_blank" class="nav-item"><span>🌐</span> Portal público</a>
+      <a href="/docs" target="_blank" class="nav-item"><span>📘</span> API Docs</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="btn-reset" class="btn btn-ghost btn-sm" title="Recarga la configuración real (vehículos, tripulación, direcciones) y limpia pedidos y rutas">↺ Recargar datos</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- ============================ PANEL ============================ -->
+    <section id="view-panel" class="view">
+      <header class="view-header">
+        <h1>Panel de control</h1>
+        <p class="muted">Resumen operativo del día · <span id="panel-depot"></span></p>
+      </header>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Pedidos por comuna</h3>
+          <div id="chart-communes" class="bar-chart"></div>
+        </div>
+        <div class="card">
+          <h3>Actividad reciente</h3>
+          <ul id="event-feed" class="event-feed"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================== PEDIDOS =========================== -->
+    <section id="view-pedidos" class="view hidden">
+      <header class="view-header">
+        <h1>Pedidos</h1>
+        <div class="header-actions">
+          <select id="filter-status" class="input">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="asignado">Asignado</option>
+            <option value="en_ruta">En ruta</option>
+            <option value="entregado">Entregado</option>
+            <option value="recolectado">Recolectado</option>
+            <option value="no_entregado">No entregado</option>
+          </select>
+          <button class="btn btn-secondary" id="btn-import-plan">⇪ Importar plan (JSON)</button>
+          <button class="btn btn-primary" id="btn-new-order">+ Nuevo pedido</button>
+        </div>
+      </header>
+      <div class="card table-card">
+        <table class="table" id="orders-table">
+          <thead>
+            <tr>
+              <th>Código</th><th>Seguimiento</th><th>Tipo</th><th>Empresa</th><th>Cliente</th><th>Dirección</th>
+              <th>Ventana</th><th>Kg</th><th>Estado</th><th>POD</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================ FLOTA ============================ -->
+    <section id="view-flota" class="view hidden">
+      <header class="view-header">
+        <h1>Flota y conductores</h1>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="btn-new-driver">+ Conductor</button>
+          <button class="btn btn-primary" id="btn-new-vehicle">+ Vehículo</button>
+        </div>
+      </header>
+      <div class="two-col">
+        <div class="card table-card">
+          <h3>Vehículos</h3>
+          <table class="table" id="vehicles-table">
+            <thead><tr><th>Patente</th><th>Nombre</th><th>Tipo</th><th>Cap. kg</th><th>Cap. m³</th><th>Conductor</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div>
+          <div class="card table-card">
+            <h3>Tripulación</h3>
+            <table class="table" id="drivers-table">
+              <thead><tr><th>Nombre</th><th>Rol</th><th>Teléfono</th><th>Cédula</th><th>Estado</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card table-card" style="margin-top:16px">
+            <h3>Remolques <button class="btn-link" id="btn-new-trailer">+ Agregar</button></h3>
+            <table class="table" id="trailers-table">
+              <thead><tr><th>Código</th><th>Nombre</th><th>Cap. kg</th><th>Cap. m³</th><th>Estado</th><th>Ubicación</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="card table-card" style="margin-top:16px">
+            <h3>Flotas</h3>
+            <table class="table" id="fleets-table">
+              <thead><tr><th>Nombre</th><th>Vehículos</th><th>Cap. kg</th><th>Cap. m³</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= DIRECCIONES ========================= -->
+    <section id="view-direcciones" class="view hidden">
+      <header class="view-header">
+        <h1>Direcciones</h1>
+        <p class="muted">Maestro de puntos de entrega y clientes (importado de la configuración real).</p>
+        <div class="header-actions">
+          <select id="adr-georef" class="input">
+            <option value="">Todas</option>
+            <option value="true">Georeferenciadas</option>
+            <option value="false">No georeferenciadas</option>
+          </select>
+          <input class="input" id="adr-q" placeholder="Buscar cliente, dirección, ciudad…" style="min-width:260px" />
+        </div>
+      </header>
+      <div class="kpi-grid" id="adr-kpis"></div>
+      <div class="card table-card">
+        <table class="table" id="addresses-table">
+          <thead><tr><th>Georef</th><th>Cliente</th><th>Dirección</th><th>Ciudad</th><th>Provincia</th><th>Tipo</th><th>Lat / Lng</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted" id="adr-count" style="padding:10px 16px"></p>
+      </div>
+    </section>
+
+    <!-- ======================== PLANIFICACIÓN ======================== -->
+    <section id="view-planificacion" class="view hidden">
+      <header class="view-header">
+        <h1>Planificación de rutas</h1>
+        <p class="muted">Optimiza pedidos pendientes con el motor VRP: capacidades, recolecciones y madre nodriza.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Parámetros</h3>
+          <label class="field">
+            <span>Esquema de ruteo</span>
+            <select id="opt-schema" class="input" style="width:100%"></select>
+          </label>
+          <label class="field">
+            <span>Depósito de salida</span>
+            <select id="opt-depot" class="input" style="width:100%"></select>
+          </label>
+          <label class="field">
+            <span>Hora de inicio</span>
+            <input type="time" id="opt-start" class="input" value="08:30" />
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-return" checked />
+            <span>Regresar al centro de distribución</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-nodriza" />
+            <span>Usar <strong>madre nodriza</strong> (transbordo a vehículos satélite)</span>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="opt-trailers" checked />
+            <span>Acoplar <strong>remolques plegables</strong> si falta volumen (solo camiones con bola)</span>
+          </label>
+          <label class="field">
+            <span>Remolque al terminar la zona</span>
+            <select id="opt-trailer-pickup" class="input" style="width:100%">
+              <option value="fin_de_ruta">Retirarlo al finalizar la ruta</option>
+              <option value="dejar">Dejarlo estacionado en el acopio (otra ruta lo retira)</option>
+            </select>
+          </label>
+          <div class="field">
+            <span>Vehículos a considerar</span>
+            <div id="opt-vehicles" class="check-list"></div>
+          </div>
+          <div class="field">
+            <span id="opt-orders-count" class="muted"></span>
+          </div>
+          <button class="btn btn-primary btn-block" id="btn-optimize">⚙️ Optimizar rutas</button>
+          <div id="opt-summary" class="opt-summary"></div>
+          <div id="routes-list" class="routes-list"></div>
+        </div>
+        <div class="plan-map card">
+          <div id="map-plan" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ CARGA ============================ -->
+    <section id="view-carga" class="view hidden">
+      <header class="view-header">
+        <h1>Carga del camión</h1>
+        <p class="muted">Lista de carga por vehículo: volumétrica primero (pesados a la delantera central, tubos a la parrilla) y paquetería en orden inverso de entrega. Confirma cada bulto con el escáner de códigos de barras o con el botón.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Rutas aprobadas</h3>
+          <div id="load-routes" class="routes-list"></div>
+        </div>
+        <div class="card" id="load-detail-card">
+          <div id="load-detail"><p class="muted">Selecciona una ruta aprobada para ver su lista de carga.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== MONITOREO ========================== -->
+    <section id="view-monitoreo" class="view hidden">
+      <header class="view-header">
+        <h1>Monitoreo en tiempo real</h1>
+        <p class="muted">Posición GPS simulada de la flota, avance de paradas y prueba de entrega.</p>
+      </header>
+      <div class="plan-layout">
+        <div class="plan-panel card">
+          <h3>Rutas en curso</h3>
+          <div id="live-routes" class="routes-list"></div>
+          <h3 style="margin-top:16px">Rutas planificadas</h3>
+          <div id="planned-routes" class="routes-list"></div>
+        </div>
+        <div class="plan-map card">
+          <div id="map-live" class="map"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== CASOS & IA ========================= -->
+    <section id="view-casos" class="view hidden">
+      <header class="view-header">
+        <h1>Casos &amp; IA</h1>
+        <p class="muted">Casos operativos generados por la IA (desvíos, geolocalización, señal, emergencias), notificaciones a clientes, delegaciones e informes de ruta. Configura el webservice de IA para que un agente LLM los analice.</p>
+      </header>
+      <div class="two-col">
+        <div class="card table-card">
+          <h3>Casos abiertos</h3>
+          <table class="table" id="cases-table">
+            <thead><tr><th>Caso</th><th>Severidad</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card table-card">
+          <h3>Notificaciones a clientes</h3>
+          <table class="table" id="notifs-table">
+            <thead><tr><th>Hora</th><th>Tipo</th><th>Cliente</th><th>Mensaje</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card table-card">
+          <h3>Delegaciones de paquetes</h3>
+          <table class="table" id="delegations-table">
+            <thead><tr><th>Pedido</th><th>De → A</th><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card table-card">
+          <h3>Informes de ruta (IA) y gastos</h3>
+          <table class="table" id="reports-table">
+            <thead><tr><th>Ruta</th><th>Resultado</th><th>Consultas IA</th><th>Gastos USD</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== EMPRESAS =========================== -->
+    <section id="view-empresas" class="view hidden">
+      <header class="view-header">
+        <h1>Empresas cliente</h1>
+        <p class="muted">Tenants que delegan su logística en Macotrans: ERPs, facturación electrónica y e-commerce. Cada empresa usa su API key en el encabezado <code>X-API-Key</code> del API de integración.</p>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-new-company">+ Nueva empresa</button>
+        </div>
+      </header>
+      <div class="card table-card">
+        <table class="table" id="companies-table">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Pedidos</th><th>API Key</th><th>Webhook</th><th>Estado</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card table-card" style="margin-top:16px">
+        <h3>Actividad del API de integración</h3>
+        <table class="table" id="intlogs-table">
+          <thead><tr><th>Fecha</th><th>Empresa</th><th>Método</th><th>Ruta</th><th>HTTP</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========================== WEBHOOKS =========================== -->
+    <section id="view-webhooks" class="view hidden">
+      <header class="view-header">
+        <h1>Integraciones · Webhooks</h1>
+        <p class="muted">Recibe notificaciones HTTP cuando cambie el estado de pedidos y rutas.</p>
+      </header>
+      <div class="card" style="max-width:640px">
+        <div class="field"><span>URL de destino</span><input class="input" id="wh-url" placeholder="https://mi-sistema.cl/webhook" /></div>
+        <div class="field"><span>Eventos (separados por coma, * para todos)</span><input class="input" id="wh-events" placeholder="order.status_changed, route.completed" /></div>
+        <button class="btn btn-primary" id="btn-add-webhook">+ Suscribir webhook</button>
+      </div>
+      <div class="card table-card" style="margin-top:16px">
+        <table class="table" id="webhooks-table">
+          <thead><tr><th>ID</th><th>URL</th><th>Eventos</th><th>Último envío</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================ MODAL ============================ -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
