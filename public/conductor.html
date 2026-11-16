@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macotrans · Conductor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📱</text></svg>" />
+  <style>
+    :root {
+      --primary: #3d4148; --primary-deep: #2c2f35; --accent: #be1e2d; --accent-bright: #d6293a;
+      --bg: #f2f3f5; --surface: #fff; --border: #e0e2e6; --text: #26292e; --muted: #6a6f78;
+      --ok: #0a8f6c; --warn: #b06f00; --danger: #d64545;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-size: 15px; padding-bottom: 30px; }
+    header { background: var(--primary-deep); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
+    .logo { font-weight: 800; letter-spacing: 1px; }
+    .logo b { color: var(--accent-bright); }
+    .logo small { display: block; font-weight: 600; font-size: 11px; color: #b9bdc4; letter-spacing: 0; }
+    main { max-width: 560px; margin: 0 auto; padding: 14px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .btn { display: block; width: 100%; border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 8px; transition: scale 150ms cubic-bezier(0.2,0,0,1); }
+    .btn:active { scale: 0.96; }
+    .btn:disabled { opacity: 0.55; }
+    .btn-red { background: var(--accent); color: #fff; }
+    .btn-gray { background: #e8e9ec; color: var(--text); }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-row .btn { margin-top: 0; font-size: 13.5px; padding: 11px 6px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+    .b-gray { background: #e8e9ec; color: #55606e; }
+    .b-blue { background: #e0f2ff; color: #0b6bab; }
+    .b-green { background: #dff3ec; color: var(--ok); }
+    .b-amber { background: #fff1de; color: var(--warn); }
+    .b-red { background: #fdeaea; color: var(--danger); }
+    .stop { border-left: 5px solid var(--border); padding-left: 10px; margin-bottom: 12px; }
+    .stop.current { border-left-color: var(--accent); }
+    .stop.done { border-left-color: var(--ok); opacity: 0.75; }
+    .stop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .stop-head h3 { font-size: 14.5px; }
+    .bulto { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--border); font-size: 13px; }
+    .bulto:last-child { border-bottom: none; }
+    .bulto input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--ok); }
+    .bulto code { font-size: 11px; color: var(--muted); display: block; }
+    .bulto.scanned { background: #f2fbf7; }
+    .scan { display: flex; gap: 8px; background: var(--primary-deep); border-radius: 10px; padding: 8px 10px; align-items: center; margin: 8px 0; }
+    .scan input { flex: 1; background: #3a3f47; border: 1px solid #555b64; border-radius: 8px; color: #fff; padding: 10px; font-size: 15px; font-family: ui-monospace, monospace; }
+    .scan input::placeholder { color: #9aa0a9; }
+    .input, select, textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 8px; padding: 10px; font-size: 15px; margin-top: 6px; }
+    .progress { height: 8px; background: #e6e7ea; border-radius: 5px; overflow: hidden; margin: 8px 0; }
+    .progress > div { height: 100%; background: var(--ok); transition: width 0.4s; }
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--primary-deep); color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 13.5px; z-index: 100; transition: opacity 0.3s; max-width: 92vw; text-align: center; }
+    .toast.err { background: var(--danger); }
+    .hidden { display: none !important; }
+    .gps { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+    .gps .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><b>MACO</b>TRANS<small>App del conductor</small></div>
+    <div id="head-route" class="muted" style="color:#b9bdc4"></div>
+  </header>
+  <main>
+    <!-- selección de ruta -->
+    <div id="route-list"></div>
+    <!-- ejecución de ruta -->
+    <div id="route-run" class="hidden"></div>
+  </main>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const API = '/api/v1';
+    let current = null; // ruta en ejecución
+    let db = { routes: [], orders: [], vehicles: [], drivers: [] };
+    let scanBuffer = {}; // orderId -> Set(barcodes escaneados)
+    let pollTimer = null;
+    let lastPos = null; // última posición GPS conocida (para gastos y entregas)
+    let delegations = [];
+
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Error ' + res.status);
+      return json.data;
+    }
+    function toast(msg, err = false) {
+      const el = $('toast');
+      el.textContent = msg;
+      el.className = 'toast' + (err ? ' err' : '');
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    async function refresh() {
+      [db.routes, db.orders, db.vehicles, db.drivers, delegations] = await Promise.all([
+        api('/routes'), api('/orders'), api('/vehicles'), api('/drivers'), api('/delegations'),
+      ]);
+    }
+
+    // ------------------------------------------------ lista de rutas
+    function renderList() {
+      const mine = db.routes.filter((r) =>
+        (r.status === 'planificada' && r.loadStatus === 'cargada') || r.status === 'en_curso'
+      );
+      $('route-list').innerHTML = mine.length
+        ? mine.map((r) => {
+            const v = db.vehicles.find((x) => x.id === r.vehicleId);
+            const d = v && db.drivers.find((x) => x.id === v.driverId);
+            return `
+        <div class="card">
+          <div class="stop-head">
+            <h3>${esc(r.id)} · ${esc(v ? v.plate : '')}</h3>
+            <span class="badge ${r.status === 'en_curso' ? 'b-amber' : 'b-green'}">${r.status === 'en_curso' ? 'EN CURSO' : 'LISTA PARA SALIR'}</span>
+          </div>
+          <p class="muted">${esc(d ? d.name : '')} · ${r.stops.length} paradas · ${r.distanceKm} km</p>
+          <button class="btn btn-red" onclick="openRoute('${r.id}')">${r.status === 'en_curso' ? 'Continuar ruta' : 'Iniciar ruta'}</button>
+        </div>`;
+          }).join('')
+        : '<div class="card"><p class="muted">No hay rutas cargadas asignadas. La ruta aparece aquí cuando bodega confirma la carga completa.</p></div>';
+    }
+
+    window.openRoute = async (routeId) => {
+      const route = db.routes.find((r) => r.id === routeId);
+      if (route.status === 'planificada') {
+        try { await api('/routes/' + routeId + '/start', { method: 'POST' }); }
+        catch (err) { return toast(err.message, true); }
+        await refresh();
+      }
+      current = routeId;
+      $('route-list').classList.add('hidden');
+      $('route-run').classList.remove('hidden');
+      renderRun();
+      startPoll();
+    };
+
+    // ------------------------------------------------ ejecución
+    function orderOf(stop) { return db.orders.find((o) => o.id === stop.orderId); }
+    const FINAL = ['entregado', 'recolectado', 'entrega_parcial', 'devuelto', 'rechazado', 'no_entregado'];
+    const RES_BADGE = { entregado: 'b-green', recolectado: 'b-green', entrega_parcial: 'b-amber', devuelto: 'b-red', rechazado: 'b-red', no_entregado: 'b-red', en_sitio: 'b-blue' };
+
+    function renderRun() {
+      const route = db.routes.find((r) => r.id === current);
+      if (!route) return;
+      const v = db.vehicles.find((x) => x.id === route.vehicleId);
+      $('head-route').textContent = route.id + ' · ' + (v ? v.plate : '');
+      const stops = route.stops.filter((s) => s.orderId);
+      const done = stops.filter((s) => s.status === 'completada').length;
+      const currentStop = stops.find((s) => s.status === 'en_sitio') || stops.find((s) => s.status !== 'completada');
+
+      // consulta pendiente de la IA (desvío de ruta)
+      const consulta = (route.aiConsultas || []).find((c) => c.status === 'pendiente');
+      const myDelegations = delegations.filter((d) => d.toRouteId === route.id && d.status === 'solicitada');
+
+      $('route-run').innerHTML = `
+        ${consulta ? `
+        <div class="card" style="border:2px solid var(--warn)">
+          <div class="stop-head"><h3>🤖 Consulta del asistente</h3><span class="badge b-amber">RESPONDER</span></div>
+          <p style="margin:6px 0">${esc(consulta.question)}</p>
+          ${consulta.options.map((o) => `<button class="btn btn-gray" onclick="answerAI('${consulta.id}', '${esc(o)}')">${esc(o)}</button>`).join('')}
+        </div>` : ''}
+        ${myDelegations.map((d) => `
+        <div class="card" style="border:2px solid var(--accent)">
+          <div class="stop-head"><h3>📦 Delegación entrante</h3><span class="badge b-red">RESPONDER</span></div>
+          <p class="muted">${esc(d.orderCode)} · ${esc(d.customer)}<br>Motivo: ${esc(d.motivo || '—')}</p>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn btn-red" onclick="respondDelegation('${d.id}','accept')">Aceptar paquete</button>
+            <button class="btn btn-gray" onclick="respondDelegation('${d.id}','reject')">Rechazar</button>
+          </div>
+        </div>`).join('')}
+        <div class="card">
+          <div class="stop-head">
+            <h3>Ruta ${esc(route.id)}</h3>
+            <span class="gps"><span class="dot"></span> GPS activo</span>
+          </div>
+          <div class="progress"><div style="width:${(done / Math.max(1, stops.length)) * 100}%"></div></div>
+          <p class="muted">${done}/${stops.length} paradas completadas · <span id="gps-info">—</span></p>
+          <div class="btn-row">
+            <button class="btn btn-gray" onclick="backToList()">← Mis rutas</button>
+            <button class="btn btn-gray" onclick="toggleExpense()">💵 Registrar gasto</button>
+          </div>
+          <div id="expense-form" class="hidden" style="margin-top:10px">
+            <select class="input" id="exp-tipo">
+              <option value="combustible">Combustible</option>
+              <option value="peaje">Peaje</option>
+              <option value="parqueo">Parqueo</option>
+              <option value="alimentacion">Alimentación</option>
+              <option value="viatico">Viático</option>
+              <option value="reparacion">Reparación</option>
+              <option value="otro">Otro</option>
+            </select>
+            <input class="input" id="exp-monto" type="number" step="0.01" min="0" placeholder="Monto USD" />
+            <input class="input" id="exp-nota" placeholder="Nota (opcional)" />
+            <label class="muted" style="display:block;margin-top:6px">
+              <input type="checkbox" id="exp-link-stop" checked /> Vincular a la parada actual
+            </label>
+            <button class="btn btn-red" onclick="saveExpense()">Guardar gasto</button>
+          </div>
+        </div>
+        ${route.stops
+          .map((s) =>
+            s.trailerAction
+              ? `<div class="card stop ${s.status === 'completada' ? 'done' : ''}">
+                  <div class="stop-head"><h3>🅿 ${esc(s.name)}</h3>
+                  <span class="badge ${s.status === 'completada' ? 'b-green' : 'b-gray'}">${s.status === 'completada' ? 'HECHO' : 'ETA ' + esc(s.eta)}</span></div>
+                  <p class="muted">${s.trailerAction === 'drop' ? 'Estaciona y desacopla el remolque en el punto de acopio.' : 'Acopla el remolque y verifica luces y seguro.'}</p>
+                </div>`
+              : s.orderId
+                ? renderStop(route, s, currentStop)
+                : ''
+          )
+          .join('')}`;
+      focusScan();
+    }
+
+    function renderStop(route, stop, currentStop) {
+      const order = orderOf(stop);
+      if (!order) return '';
+      const isCurrent = currentStop && stop.seq === currentStop.seq && stop.status !== 'completada';
+      const bultos = (route.loadingPlan || []).filter((b) => b.orderId === order.id);
+      const scanned = scanBuffer[order.id] || new Set();
+      const final = FINAL.includes(order.status);
+      const stateBadge = final
+        ? `<span class="badge ${RES_BADGE[order.status] || 'b-gray'}">${order.status.replace('_', ' ').toUpperCase()}</span>`
+        : stop.status === 'en_sitio'
+          ? '<span class="badge b-blue">EN EL CLIENTE</span>'
+          : stop.status === 'completada'
+            ? '<span class="badge b-green">COMPLETADA</span>'
+            : `<span class="badge b-gray">ETA ${esc(stop.eta)}</span>`;
+
+      return `
+      <div class="card stop ${stop.status === 'completada' || final ? 'done' : isCurrent ? 'current' : ''}">
+        <div class="stop-head">
+          <h3>${stop.seq}. ${esc(order.customer)}</h3>
+          ${stateBadge}
+        </div>
+        <p class="muted">${esc(order.address)}</p>
+        ${!final && isCurrent ? `
+          <div class="scan">
+            📷 <input id="scan-${order.id}" placeholder="Escanear bulto para confirmar…" autocomplete="off"
+                 onkeydown="if(event.key==='Enter'){scanDeliver('${order.id}', this.value); this.value='';}" />
+          </div>
+          ${bultos.map((b) => `
+            <label class="bulto ${scanned.has(b.barcode) ? 'scanned' : ''}">
+              <input type="checkbox" data-order="${order.id}" value="${esc(b.barcode)}" ${scanned.has(b.barcode) ? 'checked' : ''} onchange="toggleBulto('${order.id}', this)" />
+              <div style="flex:1">${esc(b.description)}<code>${esc(b.barcode)} · ${b.weightKg} kg</code></div>
+            </label>`).join('')}
+          <p class="muted" style="margin-top:6px">${scanned.size}/${bultos.length} bultos confirmados</p>
+          <label class="muted">Recibe (nombre / C.I.)<input class="input" id="rcpt-${order.id}" placeholder="Nombre de quien recibe" /></label>
+          <button class="btn btn-red" onclick="deliver('${order.id}', 'entregado')">✔ Entrega completa</button>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn btn-gray" onclick="deliver('${order.id}', 'entrega_parcial')">Entrega parcial</button>
+            <button class="btn btn-gray" onclick="deliver('${order.id}', 'devolucion')">Devolución</button>
+            <button class="btn btn-gray" onclick="deliver('${order.id}', 'rechazado')">Rechazo</button>
+            <button class="btn btn-gray" onclick="markAll('${order.id}')">Marcar todos</button>
+            <button class="btn btn-gray" onclick="delegateStop('${order.id}')">↪ Delegar a otra ruta</button>
+          </div>` : ''}
+        ${final && order.pod ? `<p class="muted">POD: ${esc(order.pod.receiver)} · ${order.pod.bultosEntregados}/${order.pod.bultosTotales} bultos · ${esc(order.pod.notes || '')}</p>` : ''}
+      </div>`;
+    }
+
+    window.backToList = () => {
+      current = null;
+      stopPoll();
+      $('route-run').classList.add('hidden');
+      $('route-list').classList.remove('hidden');
+      $('head-route').textContent = '';
+      boot();
+    };
+
+    window.scanDeliver = (orderId, code) => {
+      code = String(code || '').trim();
+      if (!code) return;
+      const route = db.routes.find((r) => r.id === current);
+      const bulto = (route.loadingPlan || []).find(
+        (b) => b.orderId === orderId &&
+          (b.barcode === code || b.containerId === code || b.altCode === code || b.sourceCode === code)
+      );
+      if (!bulto) return toast('El código ' + code + ' no pertenece a este cliente', true);
+      scanBuffer[orderId] = scanBuffer[orderId] || new Set();
+      if (scanBuffer[orderId].has(bulto.barcode)) return toast('Bulto ya confirmado');
+      scanBuffer[orderId].add(bulto.barcode);
+      renderRun();
+      toast('Bulto confirmado (' + scanBuffer[orderId].size + ')');
+    };
+
+    window.toggleBulto = (orderId, cb) => {
+      scanBuffer[orderId] = scanBuffer[orderId] || new Set();
+      if (cb.checked) scanBuffer[orderId].add(cb.value);
+      else scanBuffer[orderId].delete(cb.value);
+      renderRun();
+    };
+
+    window.markAll = (orderId) => {
+      const route = db.routes.find((r) => r.id === current);
+      scanBuffer[orderId] = new Set(
+        (route.loadingPlan || []).filter((b) => b.orderId === orderId).map((b) => b.barcode)
+      );
+      renderRun();
+    };
+
+    window.deliver = async (orderId, resultado) => {
+      const route = db.routes.find((r) => r.id === current);
+      const bultos = (route.loadingPlan || []).filter((b) => b.orderId === orderId);
+      const scanned = [...(scanBuffer[orderId] || new Set())];
+      if (resultado === 'entregado' && scanned.length < bultos.length) {
+        if (!confirm(`Solo ${scanned.length}/${bultos.length} bultos confirmados. ¿Registrar entrega COMPLETA igualmente?`)) return;
+      }
+      if (resultado === 'entrega_parcial' && (!scanned.length || scanned.length >= bultos.length)) {
+        return toast('Para entrega parcial confirma solo los bultos que sí se entregan', true);
+      }
+      let motivo = '';
+      if (resultado !== 'entregado') {
+        motivo = prompt(
+          resultado === 'entrega_parcial' ? 'Motivo de la entrega parcial:' :
+          resultado === 'devolucion' ? 'Motivo de la devolución:' : 'Motivo del rechazo:'
+        ) || '';
+        if (!motivo) return toast('Debes indicar el motivo', true);
+      }
+      const receptor = ($('rcpt-' + orderId) || {}).value || '';
+      try {
+        await api(`/routes/${current}/deliver`, {
+          method: 'POST',
+          body: {
+            orderId, resultado, bultoBarcodes: scanned, motivo, receptor,
+            // posición real de la confirmación (la IA valida la geolocalización)
+            lat: lastPos ? lastPos.lat : undefined,
+            lng: lastPos ? lastPos.lng : undefined,
+          },
+        });
+        delete scanBuffer[orderId];
+        toast(resultado === 'entregado' ? '✅ Entrega registrada' : 'Novedad registrada: ' + resultado.replace('_', ' '));
+        await refresh();
+        renderRun();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    };
+
+    // ------------------------------------------------ IA / delegación / gastos
+    window.answerAI = async (consultaId, answer) => {
+      let detail = '';
+      if (answer === 'Otro') detail = prompt('Cuéntanos el motivo:') || '';
+      try {
+        await api(`/routes/${current}/answer-consulta`, { method: 'POST', body: { consultaId, answer, detail } });
+        toast('Respuesta registrada. ¡Gracias!');
+        await refresh();
+        renderRun();
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.respondDelegation = async (id, action) => {
+      const motivo = action === 'reject' ? (prompt('Motivo del rechazo:') || '') : '';
+      try {
+        await api(`/delegations/${id}/${action}`, { method: 'POST', body: { motivo } });
+        toast(action === 'accept' ? 'Paquete aceptado: aparecerá en tu ruta y lista de carga' : 'Delegación rechazada');
+        await refresh();
+        renderRun();
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.delegateStop = async (orderId) => {
+      const targets = db.routes.filter((r) => r.status === 'planificada' && r.id !== current);
+      if (!targets.length) return toast('No hay otras rutas planificadas para delegar', true);
+      const list = targets.map((r, i) => `${i + 1}. ${r.id} (${(db.vehicles.find((v) => v.id === r.vehicleId) || {}).plate || ''})`).join('\n');
+      const pick = prompt('¿A qué ruta delegas este paquete?\n' + list + '\n\nEscribe el número:');
+      const target = targets[Number(pick) - 1];
+      if (!target) return;
+      const motivo = prompt('Motivo de la delegación (no alcanzo, avería, etc.):') || '';
+      try {
+        await api(`/routes/${current}/delegate`, { method: 'POST', body: { orderId, toRouteId: target.id, motivo } });
+        toast('Solicitud enviada: el otro transportista debe aceptar el paquete');
+      } catch (err) { toast(err.message, true); }
+    };
+
+    window.toggleExpense = () => $('expense-form').classList.toggle('hidden');
+
+    window.saveExpense = async () => {
+      const monto = Number($('exp-monto').value);
+      if (!(monto > 0)) return toast('Ingresa el monto del gasto', true);
+      const route = db.routes.find((r) => r.id === current);
+      const currentStop = route.stops.find((s) => s.orderId && !['completada', 'delegada'].includes(s.status));
+      try {
+        await api(`/routes/${current}/expenses`, {
+          method: 'POST',
+          body: {
+            tipo: $('exp-tipo').value,
+            montoUsd: monto,
+            notas: $('exp-nota').value.trim(),
+            orderId: $('exp-link-stop').checked && currentStop ? currentStop.orderId : null,
+            lat: lastPos ? lastPos.lat : null,
+            lng: lastPos ? lastPos.lng : null,
+          },
+        });
+        $('exp-monto').value = ''; $('exp-nota').value = '';
+        $('expense-form').classList.add('hidden');
+        toast('Gasto registrado y vinculado a la ruta');
+      } catch (err) { toast(err.message, true); }
+    };
+
+    function focusScan() {
+      const inp = document.querySelector('[id^="scan-"]');
+      if (inp) inp.focus();
+    }
+
+    // ------------------------------------------------ GPS / refresco
+    function startPoll() {
+      stopPoll();
+      pollTimer = setInterval(async () => {
+        if (!current) return;
+        try {
+          const positions = await api('/tracking');
+          const p = positions.find((x) => x.routeId === current);
+          if (p) lastPos = { lat: p.lat, lng: p.lng };
+          const el = $('gps-info');
+          if (el) el.textContent = p
+            ? `pos ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)} · próx. parada ${p.nextStop ? '#' + p.nextStop.seq + ' ETA ' + p.nextStop.eta : '—'}`
+            : 'ruta finalizada';
+          const prev = JSON.stringify((db.routes.find((r) => r.id === current) || {}).stops);
+          await refresh();
+          const now = JSON.stringify((db.routes.find((r) => r.id === current) || {}).stops);
+          if (prev !== now) renderRun();
+        } catch { /* reintenta */ }
+      }, 3000);
+    }
+    function stopPoll() { if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+
+    async function boot() {
+      try {
+        await refresh();
+        renderList();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    }
+    boot();
+  </script>
+</body>
+</html>

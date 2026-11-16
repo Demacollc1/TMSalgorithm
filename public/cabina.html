@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Macotrans · Asistente de cabina</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>" />
+  <style>
+    :root {
+      --bg: #14161a; --panel: #1e2126; --border: #31353c; --text: #eef0f3; --muted: #9aa0a9;
+      --red: #d6293a; --ok: #22c08a; --warn: #f0a020; --blue: #4aa3ff;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-size: 17px; min-height: 100vh; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    .logo { font-weight: 800; letter-spacing: 1.2px; font-size: 19px; }
+    .logo b { color: var(--red); }
+    .logo small { color: var(--muted); font-weight: 600; letter-spacing: 0; margin-left: 8px; }
+    #clock { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 20px; }
+    main { max-width: 900px; margin: 0 auto; padding: 16px; display: grid; gap: 14px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+    .row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+    @media (max-width: 720px) { .row { grid-template-columns: 1fr; } }
+    .lbl { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; }
+    .big { font-size: 30px; font-weight: 800; line-height: 1.2; }
+    .mid { font-size: 20px; font-weight: 700; }
+    .muted { color: var(--muted); }
+    .progress { height: 10px; background: #2a2e35; border-radius: 6px; overflow: hidden; margin-top: 10px; }
+    .progress > div { height: 100%; background: var(--ok); transition: width 0.5s; }
+    .sources { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+    .src { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #555; }
+    .dot.on { background: var(--ok); box-shadow: 0 0 8px rgba(34,192,138,0.7); }
+    .dot.warn { background: var(--warn); }
+    .btn {
+      display: block; width: 100%; border: none; border-radius: 12px; padding: 16px;
+      font-size: 17px; font-weight: 800; cursor: pointer; margin-top: 10px; color: #fff;
+      background: #2c313a; transition: scale 150ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .btn:active { scale: 0.96; }
+    .btn-opt { background: #2c313a; border: 1px solid var(--border); }
+    .sos { background: var(--red); font-size: 22px; padding: 22px; letter-spacing: 1px; }
+    .consulta { border: 2px solid var(--warn); }
+    .alerta { border: 2px solid var(--red); }
+    .hidden { display: none !important; }
+    select { width: 100%; background: #2c313a; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 17px; }
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 12px 20px; border-radius: 999px; z-index: 100; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><b>MACO</b>TRANS<small>Asistente de cabina</small></div>
+    <div id="clock">--:--</div>
+  </header>
+  <main>
+    <div class="panel" id="picker">
+      <div class="lbl">Vehículo de esta cabina</div>
+      <select id="veh-select"></select>
+      <button class="btn btn-opt" onclick="pickVehicle()">Iniciar asistente</button>
+      <p class="muted" style="margin-top:8px;font-size:13px">Sugerencia: abre esta pantalla como <code>/cabina?v=PLACA</code> para fijarla al vehículo.</p>
+    </div>
+
+    <div id="dash" class="hidden">
+      <div class="panel consulta hidden" id="consulta-panel"></div>
+      <div class="row">
+        <div class="panel">
+          <div class="lbl">Próxima parada</div>
+          <div class="big" id="next-name">—</div>
+          <div class="mid muted" id="next-addr"></div>
+          <div class="mid" id="next-eta" style="color:var(--blue)"></div>
+          <div class="progress"><div id="prog" style="width:0%"></div></div>
+          <div class="muted" id="prog-txt" style="margin-top:6px"></div>
+        </div>
+        <div class="panel">
+          <div class="lbl">Estado de señales GPS</div>
+          <div class="sources">
+            <span class="src"><span class="dot" id="src-celular"></span>Celular</span>
+            <span class="src"><span class="dot" id="src-gps_vehiculo"></span>GPS vehículo</span>
+            <span class="src"><span class="dot" id="src-dashcam"></span>Dashcam</span>
+          </div>
+          <div class="muted" id="src-note" style="margin-top:10px;font-size:13.5px"></div>
+          <button class="btn sos" onclick="sos()">🚨 SOS / EMERGENCIA</button>
+          <div class="muted" style="font-size:12.5px;margin-top:6px">Activa el protocolo: alerta a central con tu posición por todas las fuentes.</div>
+        </div>
+      </div>
+      <div class="panel" id="route-info"><span class="muted">Sin ruta en curso para este vehículo.</span></div>
+    </div>
+  </main>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    let vehicleId = null;
+    let db = { routes: [], vehicles: [], orders: [] };
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    async function api(p, o = {}) {
+      const r = await fetch('/api/v1' + p, { headers: { 'Content-Type': 'application/json' }, ...o, body: o.body ? JSON.stringify(o.body) : undefined });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Error');
+      return j.data;
+    }
+    function toast(m) { const t = $('toast'); t.textContent = m; t.classList.remove('hidden'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.add('hidden'), 3500); }
+    setInterval(() => ($('clock').textContent = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' })), 1000);
+
+    async function boot() {
+      db.vehicles = await api('/vehicles');
+      const params = new URLSearchParams(location.search);
+      const plate = params.get('v');
+      $('veh-select').innerHTML = db.vehicles.map((v) => `<option value="${v.id}">${esc(v.plate)} · ${esc(v.name)}</option>`).join('');
+      if (plate) {
+        const v = db.vehicles.find((x) => x.plate.toUpperCase() === plate.toUpperCase());
+        if (v) { vehicleId = v.id; start(); return; }
+      }
+    }
+    window.pickVehicle = () => { vehicleId = $('veh-select').value; start(); };
+
+    function start() {
+      $('picker').classList.add('hidden');
+      $('dash').classList.remove('hidden');
+      poll();
+      setInterval(poll, 3000);
+    }
+
+    function currentRoute() {
+      return db.routes.find((r) => r.vehicleId === vehicleId && r.status === 'en_curso') ||
+             db.routes.find((r) => r.vehicleId === vehicleId && r.status === 'planificada' && r.loadStatus === 'cargada');
+    }
+
+    async function poll() {
+      try {
+        [db.routes, db.orders] = await Promise.all([api('/routes'), api('/orders')]);
+        const tele = await api('/telemetry');
+        const mine = tele.find((t) => t.vehicleId === vehicleId) || { sources: {} };
+        const now = Date.now();
+        let anyBackup = false;
+        for (const s of ['celular', 'gps_vehiculo', 'dashcam']) {
+          const el = $('src-' + s);
+          const p = mine.sources[s];
+          const fresh = p && now - new Date(p.at).getTime() < 120000;
+          el.className = 'dot' + (fresh ? ' on' : p ? ' warn' : '');
+          if (fresh && s !== 'celular') anyBackup = true;
+        }
+        const phone = mine.sources.celular;
+        $('src-note').textContent = phone && now - new Date(phone.at).getTime() > 120000 && anyBackup
+          ? '⚠️ Señal del celular perdida: transmitiendo por respaldo. Central notificada.'
+          : 'Las tres fuentes transmiten a central de forma independiente.';
+
+        const route = currentRoute();
+        if (!route) {
+          $('route-info').innerHTML = '<span class="muted">Sin ruta en curso para este vehículo.</span>';
+          $('next-name').textContent = '—'; $('next-addr').textContent = ''; $('next-eta').textContent = '';
+          $('consulta-panel').classList.add('hidden');
+          return;
+        }
+        const stops = route.stops.filter((s) => s.orderId);
+        const done = stops.filter((s) => ['completada', 'delegada'].includes(s.status)).length;
+        const next = route.stops.find((s) => !['completada', 'delegada'].includes(s.status));
+        const nextOrder = next && next.orderId ? db.orders.find((o) => o.id === next.orderId) : null;
+        $('next-name').textContent = nextOrder ? nextOrder.customer : next ? next.name : 'Regresando al depósito';
+        $('next-addr').textContent = nextOrder ? nextOrder.address : '';
+        $('next-eta').textContent = next ? 'ETA ' + next.eta : '';
+        $('prog').style.width = ((done / Math.max(1, stops.length)) * 100) + '%';
+        $('prog-txt').textContent = `Ruta ${route.id} · ${done}/${stops.length} paradas` + (route.trailerCode ? ` · remolque ${route.trailerCode}` : '');
+        $('route-info').innerHTML = `<span class="lbl">Recordatorio</span><div class="mid">${next && next.trailerAction ? esc(next.name) : nextOrder ? 'Confirma cada bulto con el escáner al llegar.' : 'Ruta en curso.'}</div>`;
+
+        // consulta pendiente del asistente IA
+        const consulta = (route.aiConsultas || []).find((c) => c.status === 'pendiente');
+        const cp = $('consulta-panel');
+        if (consulta) {
+          cp.classList.remove('hidden');
+          cp.innerHTML = `<div class="lbl">🤖 Asistente — responde con un toque</div>
+            <div class="mid" style="margin:6px 0">${esc(consulta.question)}</div>
+            ${consulta.options.map((o) => `<button class="btn btn-opt" onclick="answer('${route.id}','${consulta.id}','${esc(o)}')">${esc(o)}</button>`).join('')}`;
+        } else {
+          cp.classList.add('hidden');
+        }
+      } catch { /* reintenta */ }
+    }
+
+    window.answer = async (routeId, consultaId, ans) => {
+      let detail = '';
+      if (ans === 'Otro') detail = prompt('Motivo:') || '';
+      try {
+        await api(`/routes/${routeId}/answer-consulta`, { method: 'POST', body: { consultaId, answer: ans, detail } });
+        toast('Respuesta enviada a central');
+        poll();
+      } catch (e) { toast(e.message); }
+    };
+
+    window.sos = async () => {
+      if (!confirm('¿Activar protocolo de EMERGENCIA? Central recibirá tu posición de inmediato.')) return;
+      const motivo = prompt('¿Qué sucede? (robo, accidente, avería, salud)') || 'SOS activado';
+      const route = currentRoute();
+      try {
+        if (route) {
+          await api(`/routes/${route.id}/sos`, { method: 'POST', body: { motivo } });
+        } else {
+          const v = db.vehicles.find((x) => x.id === vehicleId);
+          await api('/telemetry', { method: 'POST', body: { plate: v.plate, token: v.deviceToken, source: 'dashcam', lat: 0, lng: 0, event: 'sos' } });
+        }
+        toast('🚨 Central notificada. Mantén la calma y sigue el protocolo.');
+      } catch (e) { toast(e.message); }
+    };
+
+    boot();
+  </script>
+</body>
+</html>
