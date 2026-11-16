@@ -8,6 +8,7 @@
   --primary-dark: #1747c4;
   --accent: #00b386;
   --danger: #e5484d;
+  --danger-text: #c0202a; /* rojo para TEXTO: ≥4.5:1 sobre blanco y sobre badges */
   --warning: #f0a020;
   --sidebar: #101a2b;
   --sidebar-text: #b9c4d6;
@@ -132,7 +133,7 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .badge.asignado { background: #e7efff; color: var(--primary-dark); }
 .badge.en_ruta, .badge.en_curso { background: #fff4e0; color: #b06f00; }
 .badge.entregado, .badge.recolectado, .badge.completada, .badge.disponible { background: #e2f7ef; color: #067a5b; }
-.badge.no_entregado { background: #fdebec; color: var(--danger); }
+.badge.no_entregado { background: #fdebec; color: var(--danger-text); }
 .badge.planificada { background: #efe7ff; color: #6d3fd4; }
 .badge.entrega { background: #e7efff; color: var(--primary-dark); }
 .badge.recoleccion { background: #fff0f5; color: #c2367e; }
@@ -141,7 +142,7 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .badge.propuesta { background: #fff0f5; color: #c2367e; }
 .badge.en_sitio { background: #e0f2ff; color: #0b6bab; }
 .badge.entrega_parcial { background: #fff4e0; color: #b06f00; }
-.badge.devuelto, .badge.rechazado, .badge.no_apto { background: #fdebec; color: #e5484d; }
+.badge.devuelto, .badge.rechazado, .badge.no_apto { background: #fdebec; color: var(--danger-text); }
 .badge.cargada { background: #e2f7ef; color: #067a5b; }
 .badge.en_carga { background: #e7efff; color: #1747c4; }
 
@@ -150,7 +151,7 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .load-phase { margin: 16px 0 2px; font-size: 13.5px; color: var(--text); }
 .load-table td, .load-table th { padding: 7px 10px; }
 .load-table .row-loaded { background: #f2fbf7; }
-.load-table .row-loaded td { color: #6a7a72; }
+.load-table .row-loaded td { color: #5f6f67; }
 .load-table .row-skipped { background: #fdf3f3; }
 .scan-box { display: flex; align-items: center; gap: 8px; background: #101a2b; border-radius: 10px; padding: 8px 12px; }
 .scan-box .scan-icon { font-size: 20px; }
@@ -182,7 +183,7 @@ nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2p
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-block { width: 100%; }
 .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 12.5px; font-weight: 600; padding: 2px 4px; }
-.btn-link.danger { color: var(--danger); }
+.btn-link.danger { color: var(--danger-text); }
 
 .input {
   width: 100%;
@@ -223,6 +224,16 @@ select.input { width: auto; }
 .route-item .route-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
 .route-item .route-meta { color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px; }
 .route-item .route-actions { margin-top: 8px; display: flex; gap: 6px; }
+/* tarjeta de ruta como botón nativo (seleccionable por teclado) */
+button.route-item--select {
+  width: 100%; text-align: left; font: inherit; color: inherit;
+  cursor: pointer; appearance: none; -webkit-appearance: none;
+  transition: border-color 150ms cubic-bezier(0.2, 0, 0, 1);
+}
+.route-item--select:hover { border-color: var(--primary); }
+.route-item--select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+/* contenedor con desplazamiento horizontal para tablas anchas (móvil) */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .route-progress { height: 6px; background: var(--bg); border-radius: 4px; margin-top: 8px; overflow: hidden; }
 .route-progress > div { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s; }
 

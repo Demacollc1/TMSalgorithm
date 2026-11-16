@@ -36,6 +36,9 @@ async function api(path, opts = {}) {
 
 function toast(msg, isError = false) {
   const el = document.getElementById('toast');
+  // errores: anuncio inmediato (assertive + alert); avisos: polite
+  el.setAttribute('role', isError ? 'alert' : 'status');
+  el.setAttribute('aria-live', isError ? 'assertive' : 'polite');
   el.textContent = msg;
   el.className = 'toast' + (isError ? ' error' : '');
   clearTimeout(el._t);
@@ -924,7 +927,7 @@ function renderLoading() {
           const vehicle = state.vehicles.find((v) => v.id === r.vehicleId);
           const loaded = r.loadingPlan.filter((b) => b.loaded).length;
           return `
-        <div class="route-item" style="--route-color:${routeColor(i)}; cursor:pointer" onclick="selectLoadRoute('${r.id}')">
+        <button type="button" class="route-item route-item--select" style="--route-color:${routeColor(i)}" onclick="selectLoadRoute('${r.id}')">
           <div class="route-title"><span>${esc(r.id)}</span>${badge(r.loadStatus || 'pendiente', r.loadStatus === 'cargada' ? 'entregado' : 'asignado')}</div>
           <div class="route-meta">
             <span>🚛 ${esc(vehicle ? vehicle.plate : '')}</span>
@@ -932,7 +935,7 @@ function renderLoading() {
             <span>📍 ${r.stops.length} paradas</span>
           </div>
           <div class="route-progress"><div style="width:${(loaded / Math.max(1, r.loadingPlan.length)) * 100}%"></div></div>
-        </div>`;
+        </button>`;
         })
         .join('')
     : '<p class="muted">No hay rutas aprobadas. Aprueba rutas en Planificación.</p>';
@@ -981,7 +984,7 @@ async function renderLoadDetail(routeId) {
           <td>${b.loaded
             ? `<span class="badge entregado">✔ ${b.loadMethod === 'scan' ? 'escaneado' : 'manual'}</span>`
             : b.skipped
-              ? `<span class="badge no_entregado" title="${esc(b.skipReason)}">✖ no cargado</span><br><span class="muted">${esc(b.skipReason)}</span> <button class="btn-link" onclick="confirmBulto('${routeId}', ${b.seq})">cargar</button>`
+              ? `<span class="badge no_entregado" title="${esc(b.skipReason)}">✖ no cargado</span><br><span class="muted">${esc(b.skipReason)}</span> <button class="btn-link" onclick="confirmBulto('${routeId}', ${b.seq})">Cargar</button>`
               : `<button class="btn btn-secondary btn-sm" onclick="confirmBulto('${routeId}', ${b.seq})">Confirmar</button>
                  <button class="btn-link danger" onclick="skipBulto('${routeId}', ${b.seq})">No cargado</button>`}</td>
         </tr>`
@@ -990,7 +993,7 @@ async function renderLoadDetail(routeId) {
       return `
       <h4 class="load-phase">${PHASES[phase].title}</h4>
       <p class="muted" style="margin:2px 0 8px">${PHASES[phase].hint}</p>
-      <table class="table load-table"><thead><tr><th>#</th><th>Código</th><th>Bulto</th><th>Peso</th><th>Carga</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <div class="table-scroll"><table class="table load-table"><thead><tr><th>#</th><th>Código</th><th>Bulto</th><th>Peso</th><th>Carga</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     })
     .join('');
 
@@ -998,21 +1001,21 @@ async function renderLoadDetail(routeId) {
     <div class="load-head">
       <div>
         <h3 style="margin-bottom:2px">${esc(routeId)} · ${esc(vehicle ? vehicle.plate + ' — ' + vehicle.name : '')}</h3>
-        <span class="muted">${summary.loaded}/${summary.total} bultos${summary.skipped ? ` · ${summary.skipped} no cargados` : ''} · ${summary.weightKg} kg · ${summary.volumeM3} m³</span>
+        <span class="muted" style="font-variant-numeric:tabular-nums">${summary.loaded}/${summary.total} bultos${summary.skipped ? ` · ${summary.skipped} no cargados` : ''} · ${summary.weightKg} kg · ${summary.volumeM3} m³</span>
       </div>
       ${badge(loadStatus, loadStatus === 'cargada' ? 'entregado' : 'asignado')}
     </div>
     ${loadStatus !== 'cargada' ? `
     <div class="scan-box">
       <span class="scan-icon">📷</span>
-      <input class="input" id="scan-input" placeholder="Escanea el código de barras del bulto (o escríbelo y Enter)…" autocomplete="off" />
+      <input class="input" id="scan-input" aria-label="Código de barras del bulto" placeholder="Escanea el código de barras del bulto (o escríbelo y Enter)…" autocomplete="off" />
     </div>
     <p class="muted" style="margin:6px 0 12px">El lector Bluetooth teclea el código y envía Enter automáticamente: deja el cursor en el campo y escanea.</p>` : `
     <div class="load-done">
       ✅ Carga completa. Documentos generados (guías y facturas).
       <div class="route-actions" style="margin-top:10px">
         <a class="btn btn-primary btn-sm" href="/print/route/${routeId}" target="_blank" style="text-decoration:none">🖨 Formatos de impresión</a>
-        <button class="btn btn-secondary btn-sm" onclick="viewDocuments('${routeId}')">Ver payload facturación</button>
+        <button class="btn btn-secondary btn-sm" onclick="viewDocuments('${routeId}')">Ver datos de facturación</button>
         <button class="btn btn-primary btn-sm" onclick="startRoute('${routeId}')">▶ Despachar ruta</button>
       </div>
     </div>`}
@@ -1061,7 +1064,7 @@ window.skipBulto = (routeId, seq) => {
 window.viewDocuments = async (routeId) => {
   try {
     const docs = await api(`/routes/${routeId}/documents`);
-    openModal(`Payload facturación · ${routeId}`, `
+    openModal(`Datos de facturación · ${routeId}`, `
       <p class="muted">Este JSON se envía al webservice de facturación electrónica configurado (Empresas → Facturación).</p>
       <pre style="background:#101a2b;color:#d5e0f2;padding:12px;border-radius:8px;max-height:50vh;overflow:auto;font-size:11.5px">${esc(JSON.stringify(docs, null, 2))}</pre>
       <div class="actions"><button class="btn btn-secondary" onclick="closeModal()">Cerrar</button></div>`);
